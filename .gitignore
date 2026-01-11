@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.dart_tool/
+.packages
+
+# Build outputs
+backend/cdk.out/
+backend/dist/
+frontend/build/
+*.js
+*.d.ts
+*.js.map
+!backend/jest.config.js
+
+# IDE
+.idea/
+*.swp
+*.swo
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Flutter
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/pubspec.lock
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test
+coverage/
