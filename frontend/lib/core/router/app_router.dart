@@ -42,7 +42,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'new',
                 name: 'diary-new',
-                builder: (context, state) => const DiaryEditorScreen(),
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  final scannedText = extra?['scannedText'] as String?;
+                  return DiaryEditorScreen(initialText: scannedText);
+                },
               ),
               GoRoute(
                 path: 'camera',

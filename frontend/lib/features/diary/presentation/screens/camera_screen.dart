@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:camera/camera.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:dio/dio.dart';
 import 'dart:io';
+import 'dart:convert';
+import '../../../../core/constants/app_config.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -101,28 +103,74 @@ class _CameraScreenState extends State<CameraScreen> {
       // Capture image
       final XFile imageFile = await _cameraController!.takePicture();
       
-      // Run OCR using Google ML Kit
-      final textRecognizer = TextRecognizer();
-      final inputImage = InputImage.fromFilePath(imageFile.path);
-      final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
-      await textRecognizer.close();
-
-      // Clean up the image file
-      await File(imageFile.path).delete();
-
-      final extractedText = recognizedText.text;
-      
       if (mounted) {
-        if (extractedText.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No text detected. Please try again.')),
-          );
-        } else {
-          // Navigate to editor with OCR result
-          context.go('/diaries/new', extra: {'scannedText': extractedText});
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Analyzing handwriting with AI...'), duration: Duration(seconds: 2)),
+        );
       }
-    } catch (e) {
+      
+      // Read image as base64
+      final bytes = await File(imageFile.path).readAsBytes();
+      final base64Image = base64Encode(bytes);
+      
+      // Determine media type from file extension
+      final extension = imageFile.path.split('.').last.toLowerCase();
+      final mediaType = extension == 'png' ? 'image/png' : 'image/jpeg';
+      
+      // Clean up the image file
+      try {
+        await File(imageFile.path).delete();
+      } catch (_) {
+        // Ignore cleanup errors
+      }
+      
+      // Call Claude Vision API for OCR
+      final dio = Dio();
+      final response = await dio.post(
+        '${AppConfig.apiBaseUrl}/scan',
+        data: {
+          'imageBase64': base64Image,
+          'mediaType': mediaType,
+        },
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            // TODO: Add Authorization header with Cognito token
+            // 'Authorization': 'Bearer $idToken',
+          },
+        ),
+      );
+      
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final extractedText = (response.data['text'] as String?)?.trim() ?? '';
+        
+        debugPrint('Claude OCR Result: $extractedText');
+        
+        if (mounted) {
+          if (extractedText.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No text detected. Make sure the handwriting is visible.'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Text recognized successfully!'),
+                duration: Duration(seconds: 1),
+              ),
+            );
+            // Navigate to editor with OCR result
+            context.go('/diaries/new', extra: {'scannedText': extractedText});
+          }
+        }
+      } else {
+        throw Exception(response.data['message'] ?? 'Failed to process image');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('OCR Error: $e');
+      debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to process image: $e')),

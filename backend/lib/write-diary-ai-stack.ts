@@ -218,6 +218,16 @@ export class WriteDiaryAiStack extends cdk.Stack {
       memorySize: 512,
     });
 
+    // Scan (OCR with Claude Vision) Handler
+    const scanDiaryHandler = new NodejsFunction(this, 'ScanDiaryHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-ScanDiary',
+      entry: path.join(__dirname, '../lambda/handlers/diaries/scan.ts'),
+      handler: 'handler',
+      timeout: cdk.Duration.seconds(60), // Vision processing may take longer
+      memorySize: 512,
+    });
+
     // Review Card Handlers
     const createReviewCardsHandler = new NodejsFunction(this, 'CreateReviewCardsHandler', {
       ...commonLambdaProps,
@@ -254,6 +264,12 @@ export class WriteDiaryAiStack extends cdk.Stack {
     correctDiaryHandler.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
       actions: ['bedrock:InvokeModel'],
       resources: ['arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-haiku-*'],
+    }));
+
+    // Grant Bedrock permissions for scan/OCR (Claude Vision)
+    scanDiaryHandler.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+      actions: ['bedrock:InvokeModel'],
+      resources: ['arn:aws:bedrock:*::foundation-model/anthropic.claude-3-haiku-*'],
     }));
 
     reviewCardsTable.grantReadWriteData(createReviewCardsHandler);
@@ -307,6 +323,10 @@ export class WriteDiaryAiStack extends cdk.Stack {
 
     const correct = diary.addResource('correct');
     correct.addMethod('POST', new apigateway.LambdaIntegration(correctDiaryHandler), authorizationOptions);
+
+    // /scan endpoint (OCR with Claude Vision) - No auth required for now
+    const scan = api.root.addResource('scan');
+    scan.addMethod('POST', new apigateway.LambdaIntegration(scanDiaryHandler));
 
     // /review-cards endpoints
     const reviewCards = api.root.addResource('review-cards');
