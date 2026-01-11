@@ -32,6 +32,7 @@ dependencies:
   camera: ^0.11.0+2
   google_mlkit_text_recognition: ^0.13.1
   image_picker: ^1.1.2
+  permission_handler: ^11.3.1
   
   # UI Components
   cupertino_icons: ^1.0.8
@@ -63,12 +64,3 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/animations/
-  
-  fonts:
-    - family: NotoSansJP
-      fonts:
-        - asset: assets/fonts/NotoSansJP-Regular.ttf
-        - asset: assets/fonts/NotoSansJP-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/NotoSansJP-Bold.ttf
-          weight: 700

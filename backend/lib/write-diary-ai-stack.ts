@@ -4,8 +4,6 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as iam from 'aws-cdk-lib/aws-iam';
-import * as logs from 'aws-cdk-lib/aws-logs';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 import * as path from 'path';
@@ -142,29 +140,51 @@ export class WriteDiaryAiStack extends cdk.Stack {
     // Lambda Functions
     // ========================================
 
-    // Common Lambda environment variables
+    // Common Lambda environment variables (without userPoolId to avoid circular dependency)
     const lambdaEnvironment = {
       USERS_TABLE: usersTable.tableName,
       DIARIES_TABLE: diariesTable.tableName,
       REVIEW_CARDS_TABLE: reviewCardsTable.tableName,
       SCAN_USAGE_TABLE: scanUsageTable.tableName,
       IMAGES_BUCKET: imagesBucket.bucketName,
-      USER_POOL_ID: userPool.userPoolId,
       NODE_OPTIONS: '--enable-source-maps',
     };
 
-    // Common Lambda props
+    // Common bundling config
+    const bundlingConfig = {
+      minify: true,
+      sourceMap: true,
+      externalModules: ['@aws-sdk/*'],
+    };
+
+    // Post-confirmation handler MUST be created BEFORE UserPool to avoid circular dependency
+    const postConfirmationHandler = new NodejsFunction(this, 'PostConfirmationHandler', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+      functionName: 'WriteDiaryAi-PostConfirmation',
+      entry: path.join(__dirname, '../lambda/handlers/users/post-confirmation.ts'),
+      handler: 'handler',
+      environment: {
+        USERS_TABLE: usersTable.tableName,
+        NODE_OPTIONS: '--enable-source-maps',
+      },
+      bundling: bundlingConfig,
+    });
+
+    // Grant permissions to post-confirmation handler
+    usersTable.grantReadWriteData(postConfirmationHandler);
+
+    // Add Cognito trigger BEFORE creating the UserPoolClient
+    userPool.addTrigger(cognito.UserPoolOperation.POST_CONFIRMATION, postConfirmationHandler);
+
+    // Common Lambda props (for API handlers)
     const commonLambdaProps = {
       runtime: lambda.Runtime.NODEJS_18_X,
       timeout: cdk.Duration.seconds(30),
       memorySize: 256,
       environment: lambdaEnvironment,
-      logRetention: logs.RetentionDays.ONE_MONTH,
-      bundling: {
-        minify: true,
-        sourceMap: true,
-        externalModules: ['@aws-sdk/*'],
-      },
+      bundling: bundlingConfig,
     };
 
     // Diary Handlers
@@ -221,19 +241,7 @@ export class WriteDiaryAiStack extends cdk.Stack {
       handler: 'handler',
     });
 
-    // User Handler (for post-confirmation trigger)
-    const postConfirmationHandler = new NodejsFunction(this, 'PostConfirmationHandler', {
-      ...commonLambdaProps,
-      functionName: 'WriteDiaryAi-PostConfirmation',
-      entry: path.join(__dirname, '../lambda/handlers/users/post-confirmation.ts'),
-      handler: 'handler',
-    });
-
-    // Add Cognito trigger
-    userPool.addTrigger(cognito.UserPoolOperation.POST_CONFIRMATION, postConfirmationHandler);
-
     // Grant DynamoDB permissions
-    usersTable.grantReadWriteData(postConfirmationHandler);
     usersTable.grantReadData(createDiaryHandler);
     usersTable.grantReadData(correctDiaryHandler);
 
@@ -241,6 +249,12 @@ export class WriteDiaryAiStack extends cdk.Stack {
     diariesTable.grantReadData(getDiariesHandler);
     diariesTable.grantReadData(getDiaryHandler);
     diariesTable.grantReadWriteData(correctDiaryHandler);
+
+    // Grant Bedrock permissions for AI correction (Claude 3.5 Haiku)
+    correctDiaryHandler.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+      actions: ['bedrock:InvokeModel'],
+      resources: ['arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-haiku-*'],
+    }));
 
     reviewCardsTable.grantReadWriteData(createReviewCardsHandler);
     reviewCardsTable.grantReadData(getReviewCardsHandler);
@@ -264,7 +278,6 @@ export class WriteDiaryAiStack extends cdk.Stack {
         stageName: 'v1',
         throttlingRateLimit: 100,
         throttlingBurstLimit: 200,
-        loggingLevel: apigateway.MethodLoggingLevel.INFO,
       },
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:camera/camera.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -9,22 +13,114 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
+  CameraController? _cameraController;
+  List<CameraDescription>? _cameras;
   bool _isProcessing = false;
+  bool _isCameraInitialized = false;
+  String? _errorMessage;
+  bool _permissionDenied = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _requestCameraPermission();
+  }
+
+  Future<void> _requestCameraPermission() async {
+    final status = await Permission.camera.request();
+    
+    if (status.isGranted) {
+      _initializeCamera();
+    } else if (status.isDenied) {
+      setState(() {
+        _errorMessage = 'Camera permission is required to scan your diary.';
+        _permissionDenied = true;
+      });
+    } else if (status.isPermanentlyDenied) {
+      setState(() {
+        _errorMessage = 'Camera permission is permanently denied.\nPlease enable it in Settings.';
+        _permissionDenied = true;
+      });
+    }
+  }
+
+  Future<void> _initializeCamera() async {
+    try {
+      _cameras = await availableCameras();
+      
+      if (_cameras == null || _cameras!.isEmpty) {
+        setState(() {
+          _errorMessage = 'No camera found on this device';
+        });
+        return;
+      }
+
+      _cameraController = CameraController(
+        _cameras!.first,
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+
+      await _cameraController!.initialize();
+      
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+        });
+      }
+    } on CameraException catch (e) {
+      setState(() {
+        if (e.code == 'CameraAccessDenied') {
+          _errorMessage = 'Camera permission denied.\nPlease enable camera access in Settings.';
+          _permissionDenied = true;
+        } else {
+          _errorMessage = 'Camera error: ${e.description}';
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to initialize camera: $e';
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    super.dispose();
+  }
 
   Future<void> _captureAndProcess() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return;
+    }
+
     setState(() => _isProcessing = true);
 
     try {
-      // TODO: Implement camera capture and OCR
-      // 1. Capture image using camera package
-      // 2. Run OCR using Google ML Kit
-      // 3. Navigate to editor with extracted text
+      // Capture image
+      final XFile imageFile = await _cameraController!.takePicture();
       
-      await Future.delayed(const Duration(seconds: 1));
+      // Run OCR using Google ML Kit
+      final textRecognizer = TextRecognizer();
+      final inputImage = InputImage.fromFilePath(imageFile.path);
+      final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
+      await textRecognizer.close();
+
+      // Clean up the image file
+      await File(imageFile.path).delete();
+
+      final extractedText = recognizedText.text;
       
       if (mounted) {
-        // Navigate to editor with OCR result
-        context.go('/diaries/new');
+        if (extractedText.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No text detected. Please try again.')),
+          );
+        } else {
+          // Navigate to editor with OCR result
+          context.go('/diaries/new', extra: {'scannedText': extractedText});
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -56,7 +152,7 @@ class _CameraScreenState extends State<CameraScreen> {
       ),
       body: Column(
         children: [
-          // Camera preview placeholder
+          // Camera preview
           Expanded(
             child: Container(
               margin: const EdgeInsets.all(16),
@@ -65,35 +161,8 @@ class _CameraScreenState extends State<CameraScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white24),
               ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.camera_alt,
-                      size: 64,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Camera Preview',
-                      style: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 18,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Position your handwritten diary\nwithin the frame',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              clipBehavior: Clip.antiAlias,
+              child: _buildCameraPreview(),
             ),
           ),
           
@@ -101,7 +170,7 @@ class _CameraScreenState extends State<CameraScreen> {
           Padding(
             padding: const EdgeInsets.all(32),
             child: GestureDetector(
-              onTap: _isProcessing ? null : _captureAndProcess,
+              onTap: (_isProcessing || !_isCameraInitialized) ? null : _captureAndProcess,
               child: Container(
                 width: 72,
                 height: 72,
@@ -115,7 +184,7 @@ class _CameraScreenState extends State<CameraScreen> {
                     height: 60,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _isProcessing ? Colors.grey : Colors.white,
+                      color: (_isProcessing || !_isCameraInitialized) ? Colors.grey : Colors.white,
                     ),
                     child: _isProcessing
                         ? const Center(
@@ -150,5 +219,81 @@ class _CameraScreenState extends State<CameraScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildCameraPreview() {
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                _permissionDenied ? Icons.no_photography : Icons.camera_alt_outlined,
+                size: 64,
+                color: Colors.grey[600],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 24),
+              if (_permissionDenied) ...[
+                ElevatedButton(
+                  onPressed: () async {
+                    await openAppSettings();
+                  },
+                  child: const Text('Open Settings'),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _errorMessage = null;
+                      _permissionDenied = false;
+                    });
+                    _requestCameraPermission();
+                  },
+                  child: const Text('Try Again', style: TextStyle(color: Colors.white70)),
+                ),
+              ] else
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _errorMessage = null;
+                    });
+                    _initializeCamera();
+                  },
+                  child: const Text('Retry'),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (!_isCameraInitialized) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: Colors.white),
+            SizedBox(height: 16),
+            Text(
+              'Initializing camera...',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return CameraPreview(_cameraController!);
   }
 }
