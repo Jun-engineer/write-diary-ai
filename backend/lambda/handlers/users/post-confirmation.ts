@@ -20,11 +20,14 @@ export const handler: PostConfirmationTriggerHandler = async (event: PostConfirm
 
     const userId = event.request.userAttributes.sub;
     const email = event.request.userAttributes.email;
+    // Get display name from Cognito 'name' attribute, or use email prefix as fallback
+    const displayName = event.request.userAttributes.name || email.split('@')[0];
 
     // Create user record
     const user: User = {
       userId,
       email,
+      displayName,
       plan: 'free', // All new users start on free plan
       createdAt: now(),
     };
@@ -35,7 +38,7 @@ export const handler: PostConfirmationTriggerHandler = async (event: PostConfirm
       ConditionExpression: 'attribute_not_exists(userId)', // Don't overwrite existing users
     }));
 
-    console.log(`Created user record for ${userId}`);
+    console.log(`Created user record for ${userId} with displayName: ${displayName}`);
   } catch (error: any) {
     // If user already exists, that's fine
     if (error.name === 'ConditionalCheckFailedException') {

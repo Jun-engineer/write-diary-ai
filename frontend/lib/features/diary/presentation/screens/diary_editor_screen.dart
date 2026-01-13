@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/services/api_service.dart';
+import 'diary_list_screen.dart';
 
-class DiaryEditorScreen extends StatefulWidget {
+class DiaryEditorScreen extends ConsumerStatefulWidget {
   final String? initialText;
+  final String? inputType; // 'manual' or 'scan'
   
-  const DiaryEditorScreen({super.key, this.initialText});
+  const DiaryEditorScreen({
+    super.key, 
+    this.initialText,
+    this.inputType,
+  });
 
   @override
-  State<DiaryEditorScreen> createState() => _DiaryEditorScreenState();
+  ConsumerState<DiaryEditorScreen> createState() => _DiaryEditorScreenState();
 }
 
-class _DiaryEditorScreenState extends State<DiaryEditorScreen> {
+class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
   final _textController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
@@ -53,23 +61,39 @@ class _DiaryEditorScreenState extends State<DiaryEditorScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Call API to save diary
-      // final response = await apiService.createDiary(
-      //   date: DateFormat('yyyy-MM-dd').format(_selectedDate),
-      //   originalText: _textController.text,
-      //   inputType: 'manual',
-      // );
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.createDiary(
+        date: DateFormat('yyyy-MM-dd').format(_selectedDate),
+        originalText: _textController.text,
+        inputType: widget.inputType ?? 'manual',
+      );
 
       if (mounted) {
+        // Invalidate the diary list to refresh
+        ref.invalidate(diaryListProvider);
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Diary saved!')),
+          const SnackBar(
+            content: Text('Diary saved successfully!'),
+            backgroundColor: Colors.green,
+          ),
         );
-        context.go('/diaries');
+        
+        // Navigate to the new diary's detail page
+        final diaryId = response['diaryId'] as String?;
+        if (diaryId != null) {
+          context.go('/diaries/$diaryId');
+        } else {
+          context.go('/diaries');
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e')),
+          SnackBar(
+            content: Text('Failed to save: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -81,13 +105,15 @@ class _DiaryEditorScreenState extends State<DiaryEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isScanned = widget.inputType == 'scan' || widget.initialText != null;
+    
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => context.go('/diaries'),
         ),
-        title: const Text('New Diary'),
+        title: Text(isScanned ? 'Scanned Diary' : 'New Diary'),
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _saveDiary,
@@ -122,6 +148,24 @@ class _DiaryEditorScreenState extends State<DiaryEditorScreen> {
             ),
           ),
           const Divider(height: 1),
+          
+          // Scanned indicator
+          if (isScanned)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.blue[50],
+              child: Row(
+                children: [
+                  Icon(Icons.camera_alt, size: 16, color: Colors.blue[700]),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Scanned from handwriting - Please review and edit if needed',
+                    style: TextStyle(fontSize: 13, color: Colors.blue[700]),
+                  ),
+                ],
+              ),
+            ),
           
           // Text input
           Expanded(

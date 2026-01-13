@@ -13,11 +13,11 @@ import {
 
 const DIARIES_TABLE = process.env.DIARIES_TABLE!;
 
-// Initialize Bedrock client
-const bedrockClient = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
+// Initialize Bedrock client - use us-east-1 where models are available
+const bedrockClient = new BedrockRuntimeClient({ region: 'us-east-1' });
 
-// Claude 3.5 Haiku model ID
-const CLAUDE_MODEL_ID = 'anthropic.claude-3-5-haiku-20241022-v1:0';
+// Amazon Nova Lite model ID (available without approval)
+const MODEL_ID = 'amazon.nova-lite-v1:0';
 
 // AI correction prompts by mode
 const CORRECTION_PROMPTS: Record<CorrectionMode, string> = {
@@ -157,27 +157,30 @@ ${originalText}
 
   try {
     const response = await bedrockClient.send(new InvokeModelCommand({
-      modelId: CLAUDE_MODEL_ID,
+      modelId: MODEL_ID,
       contentType: 'application/json',
       accept: 'application/json',
       body: JSON.stringify({
-        anthropic_version: 'bedrock-2023-05-31',
-        max_tokens: 4096,
-        system: systemPrompt,
+        schemaVersion: 'messages-v1',
         messages: [
           {
             role: 'user',
-            content: userPrompt,
+            content: [
+              { text: systemPrompt + '\n\n' + userPrompt }
+            ],
           },
         ],
+        inferenceConfig: {
+          maxTokens: 4096,
+        },
       }),
     }));
 
-    // Parse the response
+    // Parse the response (Nova format)
     const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-    const aiContent = responseBody.content[0].text;
+    const aiContent = responseBody.output.message.content[0].text;
     
-    console.log('Claude response:', aiContent);
+    console.log('Nova response:', aiContent);
 
     // Parse the JSON response from Claude
     const parsed = JSON.parse(aiContent);

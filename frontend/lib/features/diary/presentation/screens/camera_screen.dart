@@ -162,7 +162,10 @@ class _CameraScreenState extends State<CameraScreen> {
               ),
             );
             // Navigate to editor with OCR result
-            context.go('/diaries/new', extra: {'scannedText': extractedText});
+            context.go('/diaries/new', extra: {
+              'scannedText': extractedText,
+              'inputType': 'scan',
+            });
           }
         }
       } else {

@@ -209,6 +209,20 @@ export class WriteDiaryAiStack extends cdk.Stack {
       handler: 'handler',
     });
 
+    const updateDiaryHandler = new NodejsFunction(this, 'UpdateDiaryHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-UpdateDiary',
+      entry: path.join(__dirname, '../lambda/handlers/diaries/update.ts'),
+      handler: 'handler',
+    });
+
+    const deleteDiaryHandler = new NodejsFunction(this, 'DeleteDiaryHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-DeleteDiary',
+      entry: path.join(__dirname, '../lambda/handlers/diaries/delete.ts'),
+      handler: 'handler',
+    });
+
     const correctDiaryHandler = new NodejsFunction(this, 'CorrectDiaryHandler', {
       ...commonLambdaProps,
       functionName: 'WriteDiaryAi-CorrectDiary',
@@ -243,11 +257,43 @@ export class WriteDiaryAiStack extends cdk.Stack {
       handler: 'handler',
     });
 
+    const deleteReviewCardHandler = new NodejsFunction(this, 'DeleteReviewCardHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-DeleteReviewCard',
+      entry: path.join(__dirname, '../lambda/handlers/review-cards/delete.ts'),
+      handler: 'handler',
+    });
+
     // Scan Usage Handler
     const getScanUsageHandler = new NodejsFunction(this, 'GetScanUsageHandler', {
       ...commonLambdaProps,
       functionName: 'WriteDiaryAi-GetScanUsage',
       entry: path.join(__dirname, '../lambda/handlers/scan-usage/get.ts'),
+      handler: 'handler',
+    });
+
+    // Delete Account Handler
+    const deleteAccountHandler = new NodejsFunction(this, 'DeleteAccountHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-DeleteAccount',
+      entry: path.join(__dirname, '../lambda/handlers/users/delete-account.ts'),
+      handler: 'handler',
+      timeout: cdk.Duration.seconds(60), // May take longer to delete all data
+    });
+
+    // Get User Profile Handler
+    const getUserProfileHandler = new NodejsFunction(this, 'GetUserProfileHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-GetUserProfile',
+      entry: path.join(__dirname, '../lambda/handlers/users/get-profile.ts'),
+      handler: 'handler',
+    });
+
+    // Update User Profile Handler
+    const updateUserProfileHandler = new NodejsFunction(this, 'UpdateUserProfileHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-UpdateUserProfile',
+      entry: path.join(__dirname, '../lambda/handlers/users/update-profile.ts'),
       handler: 'handler',
     });
 
@@ -258,27 +304,49 @@ export class WriteDiaryAiStack extends cdk.Stack {
     diariesTable.grantReadWriteData(createDiaryHandler);
     diariesTable.grantReadData(getDiariesHandler);
     diariesTable.grantReadData(getDiaryHandler);
+    diariesTable.grantReadWriteData(updateDiaryHandler);
+    diariesTable.grantReadWriteData(deleteDiaryHandler);
     diariesTable.grantReadWriteData(correctDiaryHandler);
 
-    // Grant Bedrock permissions for AI correction (Claude 3.5 Haiku)
+    // Grant review cards table access for delete diary handler
+    reviewCardsTable.grantReadWriteData(deleteDiaryHandler);
+
+    // Grant Bedrock permissions for AI correction (Amazon Nova Lite in us-east-1)
     correctDiaryHandler.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
       actions: ['bedrock:InvokeModel'],
-      resources: ['arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-haiku-*'],
+      resources: [
+        'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-lite-v1:0',
+        'arn:aws:bedrock:*::foundation-model/amazon.nova-*',
+      ],
     }));
 
-    // Grant Bedrock permissions for scan/OCR (Claude Vision)
+    // Grant Bedrock permissions for scan/OCR (Amazon Nova in us-east-1)
     scanDiaryHandler.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
       actions: ['bedrock:InvokeModel'],
-      resources: ['arn:aws:bedrock:*::foundation-model/anthropic.claude-3-haiku-*'],
+      resources: [
+        'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-lite-v1:0',
+        'arn:aws:bedrock:*::foundation-model/amazon.nova-*',
+      ],
     }));
 
     reviewCardsTable.grantReadWriteData(createReviewCardsHandler);
     reviewCardsTable.grantReadData(getReviewCardsHandler);
+    reviewCardsTable.grantReadWriteData(deleteReviewCardHandler);
     diariesTable.grantReadData(createReviewCardsHandler); // Need to read diary for context
 
     scanUsageTable.grantReadWriteData(createDiaryHandler); // Increment scan count
     scanUsageTable.grantReadData(getScanUsageHandler);
     usersTable.grantReadData(getScanUsageHandler); // Check user plan
+
+    // Grant permissions for delete account handler
+    usersTable.grantReadWriteData(deleteAccountHandler);
+    diariesTable.grantReadWriteData(deleteAccountHandler);
+    reviewCardsTable.grantReadWriteData(deleteAccountHandler);
+    scanUsageTable.grantReadWriteData(deleteAccountHandler);
+
+    // Grant permissions for user profile handlers
+    usersTable.grantReadData(getUserProfileHandler);
+    usersTable.grantReadWriteData(updateUserProfileHandler);
 
     // Grant S3 permissions for image upload
     imagesBucket.grantReadWrite(createDiaryHandler);
@@ -320,6 +388,8 @@ export class WriteDiaryAiStack extends cdk.Stack {
 
     const diary = diaries.addResource('{diaryId}');
     diary.addMethod('GET', new apigateway.LambdaIntegration(getDiaryHandler), authorizationOptions);
+    diary.addMethod('PUT', new apigateway.LambdaIntegration(updateDiaryHandler), authorizationOptions);
+    diary.addMethod('DELETE', new apigateway.LambdaIntegration(deleteDiaryHandler), authorizationOptions);
 
     const correct = diary.addResource('correct');
     correct.addMethod('POST', new apigateway.LambdaIntegration(correctDiaryHandler), authorizationOptions);
@@ -333,10 +403,20 @@ export class WriteDiaryAiStack extends cdk.Stack {
     reviewCards.addMethod('POST', new apigateway.LambdaIntegration(createReviewCardsHandler), authorizationOptions);
     reviewCards.addMethod('GET', new apigateway.LambdaIntegration(getReviewCardsHandler), authorizationOptions);
 
+    const reviewCard = reviewCards.addResource('{cardId}');
+    reviewCard.addMethod('DELETE', new apigateway.LambdaIntegration(deleteReviewCardHandler), authorizationOptions);
+
     // /scan-usage endpoints
     const scanUsage = api.root.addResource('scan-usage');
     const scanUsageToday = scanUsage.addResource('today');
     scanUsageToday.addMethod('GET', new apigateway.LambdaIntegration(getScanUsageHandler), authorizationOptions);
+
+    // /users endpoints
+    const users = api.root.addResource('users');
+    const usersMe = users.addResource('me');
+    usersMe.addMethod('GET', new apigateway.LambdaIntegration(getUserProfileHandler), authorizationOptions);
+    usersMe.addMethod('PUT', new apigateway.LambdaIntegration(updateUserProfileHandler), authorizationOptions);
+    usersMe.addMethod('DELETE', new apigateway.LambdaIntegration(deleteAccountHandler), authorizationOptions);
 
     // ========================================
     // Outputs

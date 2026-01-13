@@ -1,75 +1,108 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import '../../../../core/services/api_service.dart';
+import 'diary_list_screen.dart';
 
-class DiaryDetailScreen extends StatefulWidget {
+/// Provider for a single diary - using StateProvider to allow manual updates
+final diaryDetailProvider = StateNotifierProvider.autoDispose
+    .family<DiaryDetailNotifier, AsyncValue<Map<String, dynamic>>, String>(
+  (ref, diaryId) => DiaryDetailNotifier(ref, diaryId),
+);
+
+class DiaryDetailNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>>> {
+  final Ref _ref;
+  final String _diaryId;
+
+  DiaryDetailNotifier(this._ref, this._diaryId) : super(const AsyncValue.loading()) {
+    _loadDiary();
+  }
+
+  Future<void> _loadDiary() async {
+    try {
+      state = const AsyncValue.loading();
+      final apiService = _ref.read(apiServiceProvider);
+      final diary = await apiService.getDiary(_diaryId);
+      state = AsyncValue.data(diary);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> refresh() async {
+    await _loadDiary();
+  }
+
+  void updateDiary(Map<String, dynamic> diary) {
+    state = AsyncValue.data(diary);
+  }
+}
+
+class DiaryDetailScreen extends ConsumerStatefulWidget {
   final String diaryId;
-  
+
   const DiaryDetailScreen({super.key, required this.diaryId});
 
   @override
-  State<DiaryDetailScreen> createState() => _DiaryDetailScreenState();
+  ConsumerState<DiaryDetailScreen> createState() => _DiaryDetailScreenState();
 }
 
-class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
+class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
   String _selectedMode = 'intermediate';
-  bool _isLoading = false;
   bool _isCorrecting = false;
-
-  // TODO: Replace with actual diary data from API
-  final Map<String, dynamic> _mockDiary = {
-    'diaryId': '123',
-    'date': '2026-01-11',
-    'originalText': 'I went to airport to say goodbye my friend. It was very sad moment.',
-    'correctedText': null,
-    'corrections': null,
-  };
+  bool _isCreatingCards = false;
+  bool _isDeleting = false;
+  Set<int> _selectedCorrections = {};
+  bool _isSelectMode = false;
 
   Future<void> _runCorrection() async {
     setState(() => _isCorrecting = true);
 
     try {
-      // TODO: Call API for correction
-      // final response = await apiService.correctDiary(
-      //   diaryId: widget.diaryId,
-      //   mode: _selectedMode,
-      // );
+      final apiService = ref.read(apiServiceProvider);
+      final result = await apiService.correctDiary(
+        diaryId: widget.diaryId,
+        mode: _selectedMode,
+      );
 
-      // Mock response
-      await Future.delayed(const Duration(seconds: 2));
+      debugPrint('Correction result: $result');
+      debugPrint('correctedText: ${result['correctedText']}');
+      debugPrint('corrections: ${result['corrections']}');
+
+      // Update the local state immediately with the correction result
+      final notifier = ref.read(diaryDetailProvider(widget.diaryId).notifier);
+      final currentState = ref.read(diaryDetailProvider(widget.diaryId));
       
-      setState(() {
-        _mockDiary['correctedText'] = 'I went to the airport to say goodbye to my friend. It was a very sad moment.';
-        _mockDiary['corrections'] = [
-          {
-            'type': 'grammar',
-            'before': 'airport',
-            'after': 'the airport',
-            'explanation': 'Use definite article "the" when referring to a specific place.',
-          },
-          {
-            'type': 'grammar',
-            'before': 'say goodbye my friend',
-            'after': 'say goodbye to my friend',
-            'explanation': 'The phrase "say goodbye" requires the preposition "to" before the object.',
-          },
-          {
-            'type': 'grammar',
-            'before': 'very sad moment',
-            'after': 'a very sad moment',
-            'explanation': 'Use indefinite article "a" before singular countable nouns.',
-          },
-        ];
-      });
+      if (currentState.hasValue) {
+        final updatedDiary = Map<String, dynamic>.from(currentState.value!);
+        updatedDiary['correctedText'] = result['correctedText'];
+        updatedDiary['corrections'] = result['corrections'];
+        debugPrint('Updated diary: $updatedDiary');
+        notifier.updateDiary(updatedDiary);
+      } else {
+        debugPrint('No current state value, refreshing from server');
+        await notifier.refresh();
+      }
+
+      // Also refresh the list
+      ref.invalidate(diaryListProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Correction complete!')),
+          const SnackBar(
+            content: Text('Correction complete!'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Correction failed: $e')),
+          SnackBar(
+            content: Text('Correction failed: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -79,9 +112,117 @@ class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
     }
   }
 
+  Future<void> _createSelectedReviewCards() async {
+    if (_selectedCorrections.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least one correction'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isCreatingCards = true);
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final result = await apiService.createReviewCardsFromSelection(
+        diaryId: widget.diaryId,
+        selectedIndices: _selectedCorrections.toList(),
+      );
+
+      if (mounted) {
+        final cardCount = result['created'] ?? 0;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Created $cardCount review cards!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        setState(() {
+          _selectedCorrections.clear();
+          _isSelectMode = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create cards: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCreatingCards = false);
+      }
+    }
+  }
+
+  Future<void> _deleteDiary() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Diary'),
+        content: const Text('Are you sure you want to delete this diary? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isDeleting = true);
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      await apiService.deleteDiary(widget.diaryId);
+
+      ref.invalidate(diaryListProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Diary deleted'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.go('/diaries');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+      }
+    }
+  }
+
+  void _editDiary(Map<String, dynamic> diary) {
+    context.push('/diaries/${widget.diaryId}/edit', extra: diary);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final hasCorrections = _mockDiary['corrections'] != null;
+    final diaryAsync = ref.watch(diaryDetailProvider(widget.diaryId));
 
     return Scaffold(
       appBar: AppBar(
@@ -89,187 +230,382 @@ class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/diaries'),
         ),
-        title: Text(_mockDiary['date']),
+        title: const Text('Diary'),
         actions: [
-          if (hasCorrections)
+          if (diaryAsync.hasValue) ...[
             IconButton(
-              icon: const Icon(Icons.add_card),
-              onPressed: () {
-                // TODO: Show dialog to create review cards
-              },
-              tooltip: 'Create Review Cards',
+              icon: const Icon(Icons.edit),
+              onPressed: () => _editDiary(diaryAsync.value!),
+              tooltip: 'Edit',
             ),
+            IconButton(
+              icon: _isDeleting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.delete),
+              onPressed: _isDeleting ? null : _deleteDiary,
+              tooltip: 'Delete',
+            ),
+          ],
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => ref.read(diaryDetailProvider(widget.diaryId).notifier).refresh(),
+          ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Original Text Section
-            Text(
-              'Original',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+      body: diaryAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+              const SizedBox(height: 16),
+              Text('Failed to load diary', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(error.toString(), style: TextStyle(color: Colors.grey[600])),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.read(diaryDetailProvider(widget.diaryId).notifier).refresh(),
+                child: const Text('Retry'),
               ),
+            ],
+          ),
+        ),
+        data: (diary) => _buildContent(context, diary),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, Map<String, dynamic> diary) {
+    final date = diary['date'] as String? ?? '';
+    final originalText = diary['originalText'] as String? ?? '';
+    final correctedText = diary['correctedText'] as String?;
+    final corrections = diary['corrections'] as List<dynamic>?;
+    final hasCorrections = corrections != null && corrections.isNotEmpty;
+
+    DateTime? dateTime;
+    try {
+      dateTime = DateFormat('yyyy-MM-dd').parse(date);
+    } catch (_) {}
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Date header
+          if (dateTime != null)
+            Text(
+              DateFormat('EEEE, MMMM d, yyyy').format(dateTime),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
+          const SizedBox(height: 16),
+
+          // Original Text Section
+          Text(
+            'Original',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              originalText,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Correction Mode Selector (always show to allow re-correction)
+          Text(
+            'AI Correction',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'beginner', label: Text('Beginner')),
+              ButtonSegment(value: 'intermediate', label: Text('Intermediate')),
+              ButtonSegment(value: 'advanced', label: Text('Advanced')),
+            ],
+            selected: {_selectedMode},
+            onSelectionChanged: (Set<String> selection) {
+              setState(() => _selectedMode = selection.first);
+            },
+          ),
+          const SizedBox(height: 8),
+          _buildModeDescription(),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _isCorrecting ? null : _runCorrection,
+              icon: _isCorrecting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.auto_fix_high),
+              label: Text(_isCorrecting
+                  ? 'Correcting...'
+                  : hasCorrections
+                      ? 'Re-run AI Correction'
+                      : 'Run AI Correction'),
+            ),
+          ),
+
+          // Corrected Text Section
+          if (hasCorrections) ...[
+            const SizedBox(height: 24),
+            Text(
+              'Corrected',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
             ),
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                ),
               ),
               child: Text(
-                _mockDiary['originalText'],
+                correctedText ?? originalText,
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
-            // Correction Mode Selector
-            if (!hasCorrections) ...[
-              Text(
-                'Correction Mode',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+
+            // Corrections List with selection
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Corrections (${corrections.length})',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'beginner', label: Text('Beginner')),
-                  ButtonSegment(value: 'intermediate', label: Text('Intermediate')),
-                  ButtonSegment(value: 'advanced', label: Text('Advanced')),
-                ],
-                selected: {_selectedMode},
-                onSelectionChanged: (Set<String> selection) {
-                  setState(() => _selectedMode = selection.first);
-                },
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isCorrecting ? null : _runCorrection,
-                  icon: _isCorrecting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.auto_fix_high),
-                  label: Text(_isCorrecting ? 'Correcting...' : 'Run AI Correction'),
+                Row(
+                  children: [
+                    if (_isSelectMode) ...[
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _selectedCorrections.clear();
+                            _isSelectMode = false;
+                          });
+                        },
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton.icon(
+                        onPressed: _isCreatingCards ? null : _createSelectedReviewCards,
+                        icon: _isCreatingCards
+                            ? const SizedBox(
+                                height: 16,
+                                width: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.add_card, size: 18),
+                        label: Text(_isCreatingCards
+                            ? 'Creating...'
+                            : 'Add ${_selectedCorrections.length} to Cards'),
+                      ),
+                    ] else
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() => _isSelectMode = true);
+                        },
+                        icon: const Icon(Icons.add_card, size: 18),
+                        label: const Text('Add to Review Cards'),
+                      ),
+                  ],
                 ),
-              ),
-            ],
-            
-            // Corrected Text Section
-            if (hasCorrections) ...[
-              Text(
-                'Corrected',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                  ),
-                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_isSelectMode)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  _mockDiary['correctedText'],
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  'Select corrections to add to your review cards',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
                 ),
               ),
-              
-              const SizedBox(height: 24),
-              
-              // Corrections List
-              Text(
-                'Corrections',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...(_mockDiary['corrections'] as List).map((correction) {
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange[100],
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                correction['type'].toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange[800],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        RichText(
-                          text: TextSpan(
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            children: [
-                              TextSpan(
-                                text: correction['before'],
-                                style: const TextStyle(
-                                  decoration: TextDecoration.lineThrough,
-                                  color: Colors.red,
-                                ),
-                              ),
-                              const TextSpan(text: ' → '),
-                              TextSpan(
-                                text: correction['after'],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          correction['explanation'],
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
+            ...corrections.asMap().entries.map((entry) {
+              final index = entry.key;
+              final correction = entry.value;
+              return _buildCorrectionCard(correction, index);
+            }),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeDescription() {
+    String description;
+    switch (_selectedMode) {
+      case 'beginner':
+        description = 'Focus on basic grammar, spelling, and missing articles.';
+        break;
+      case 'intermediate':
+        description = 'Includes word choice improvements and natural phrasing.';
+        break;
+      case 'advanced':
+        description = 'Comprehensive corrections including style and idioms.';
+        break;
+      default:
+        description = '';
+    }
+    return Text(
+      description,
+      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+    );
+  }
+
+  Widget _buildCorrectionCard(dynamic correction, int index) {
+    final type = correction['type'] as String? ?? 'grammar';
+    final before = correction['before'] as String? ?? '';
+    final after = correction['after'] as String? ?? '';
+    final explanation = correction['explanation'] as String? ?? '';
+    final isSelected = _selectedCorrections.contains(index);
+
+    Color typeColor;
+    switch (type.toLowerCase()) {
+      case 'grammar':
+        typeColor = Colors.orange;
+        break;
+      case 'spelling':
+        typeColor = Colors.red;
+        break;
+      case 'style':
+        typeColor = Colors.purple;
+        break;
+      case 'vocabulary':
+        typeColor = Colors.blue;
+        break;
+      default:
+        typeColor = Colors.grey;
+    }
+
+    return GestureDetector(
+      onTap: _isSelectMode
+          ? () {
+              setState(() {
+                if (isSelected) {
+                  _selectedCorrections.remove(index);
+                } else {
+                  _selectedCorrections.add(index);
+                }
+              });
+            }
+          : null,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : null,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: isSelected
+              ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
+              : BorderSide.none,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (_isSelectMode) ...[
+                    Checkbox(
+                      value: isSelected,
+                      onChanged: (value) {
+                        setState(() {
+                          if (value == true) {
+                            _selectedCorrections.add(index);
+                          } else {
+                            _selectedCorrections.remove(index);
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      type.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: typeColor.withValues(alpha: 0.8),
+                      ),
                     ),
                   ),
-                );
-              }),
+                ],
+              ),
+              const SizedBox(height: 8),
+              RichText(
+                text: TextSpan(
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  children: [
+                    TextSpan(
+                      text: before,
+                      style: const TextStyle(
+                        decoration: TextDecoration.lineThrough,
+                        color: Colors.red,
+                      ),
+                    ),
+                    const TextSpan(text: ' → '),
+                    TextSpan(
+                      text: after,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (explanation.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  explanation,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

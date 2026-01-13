@@ -1,5 +1,5 @@
 name: write_diary_ai
-description: English diary app with AI correction for language learners.
+description: WriteDiary AI - English diary app with AI correction for language learners.
 publish_to: 'none'
 version: 1.0.0+1
 

@@ -2,6 +2,7 @@
 export interface User {
   userId: string;
   email: string;
+  displayName?: string;
   plan: 'free' | 'premium';
   createdAt: number;
   updatedAt?: number;
