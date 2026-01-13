@@ -223,7 +223,7 @@ class _DiaryCard extends StatelessWidget {
                           Icon(Icons.camera_alt, size: 14, color: Colors.blue[700]),
                           const SizedBox(width: 4),
                           Text(
-                            'Scanned',
+                            '手書き',
                             style: TextStyle(fontSize: 12, color: Colors.blue[700]),
                           ),
                         ],
@@ -244,7 +244,7 @@ class _DiaryCard extends StatelessWidget {
                           Icon(Icons.check_circle, size: 14, color: Colors.green[700]),
                           const SizedBox(width: 4),
                           Text(
-                            'Corrected',
+                            '添削済み',
                             style: TextStyle(fontSize: 12, color: Colors.green[700]),
                           ),
                         ],

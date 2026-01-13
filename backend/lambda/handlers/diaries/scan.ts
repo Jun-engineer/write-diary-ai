@@ -2,7 +2,8 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { success, badRequest, serverError } from '../../shared/response';
 
-const bedrockClient = new BedrockRuntimeClient({ region: process.env.AWS_REGION });
+// Use us-east-1 where Nova models are available
+const bedrockClient = new BedrockRuntimeClient({ region: 'us-east-1' });
 
 interface ScanRequest {
   imageBase64: string; // Base64 encoded image
@@ -70,32 +71,34 @@ Instructions:
 
 Transcribe the handwritten text:`;
 
+  // Use Amazon Nova Lite for vision (available without approval)
   const requestBody = {
-    anthropic_version: 'bedrock-2023-05-31',
-    max_tokens: 4096,
+    schemaVersion: 'messages-v1',
     messages: [
       {
         role: 'user',
         content: [
           {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: mediaType,
-              data: imageBase64,
+            image: {
+              format: mediaType.split('/')[1] || 'jpeg',
+              source: {
+                bytes: imageBase64,
+              },
             },
           },
           {
-            type: 'text',
             text: prompt,
           },
         ],
       },
     ],
+    inferenceConfig: {
+      maxTokens: 4096,
+    },
   };
 
   const command = new InvokeModelCommand({
-    modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
+    modelId: 'amazon.nova-lite-v1:0',
     contentType: 'application/json',
     accept: 'application/json',
     body: JSON.stringify(requestBody),
@@ -104,8 +107,8 @@ Transcribe the handwritten text:`;
   const response = await bedrockClient.send(command);
   const responseBody = JSON.parse(new TextDecoder().decode(response.body));
 
-  if (responseBody.content && responseBody.content.length > 0) {
-    const text = responseBody.content[0].text.trim();
+  if (responseBody.output?.message?.content && responseBody.output.message.content.length > 0) {
+    const text = responseBody.output.message.content[0].text.trim();
     
     // Check if no text was found
     if (text === '[No readable text found]') {

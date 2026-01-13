@@ -157,7 +157,7 @@ class ApiService {
 
   /// Get today's scan usage
   Future<Map<String, dynamic>> getScanUsage() async {
-    final response = await _dio.get('/scan-usage');
+    final response = await _dio.get('/scan-usage/today');
     return response.data;
   }
 

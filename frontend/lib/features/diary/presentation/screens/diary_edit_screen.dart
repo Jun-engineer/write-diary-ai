@@ -65,7 +65,7 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Diary updated! Corrections have been cleared.'),
+            content: Text('日記を更新しました！添削はクリアされました。'),
             backgroundColor: Colors.green,
           ),
         );
@@ -93,16 +93,16 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Discard Changes?'),
-        content: const Text('You have unsaved changes. Are you sure you want to discard them?'),
+        title: const Text('変更を破棄しますか？'),
+        content: const Text('保存されていない変更があります。本当に破棄しますか？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text('キャンセル'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Discard'),
+            child: const Text('破棄'),
           ),
         ],
       ),
@@ -137,7 +137,7 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
               }
             },
           ),
-          title: const Text('Edit Diary'),
+          title: const Text('日記を編集'),
           actions: [
             TextButton.icon(
               onPressed: _hasChanges && !_isSaving ? _saveChanges : null,
@@ -148,7 +148,7 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.save),
-              label: Text(_isSaving ? 'Saving...' : 'Save'),
+              label: Text(_isSaving ? '保存中...' : '保存'),
             ),
           ],
         ),
@@ -158,14 +158,14 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Edit your diary entry',
+                '日記を編集',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               const SizedBox(height: 4),
               Text(
-                'Note: Corrections will be cleared when you save changes.',
+                '注意: 保存すると添削がクリアされます。',
                 style: TextStyle(color: Colors.grey[600], fontSize: 13),
               ),
               const SizedBox(height: 16),
@@ -176,7 +176,7 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
                   expands: true,
                   textAlignVertical: TextAlignVertical.top,
                   decoration: InputDecoration(
-                    hintText: 'Write your diary entry in English...',
+                    hintText: '英語で日記を書いてください...',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

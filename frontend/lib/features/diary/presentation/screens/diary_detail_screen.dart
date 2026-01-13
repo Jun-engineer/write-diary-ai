@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/providers/locale_provider.dart';
+import '../../../../core/providers/correction_mode_provider.dart';
 import 'diary_list_screen.dart';
 
 /// Provider for a single diary - using StateProvider to allow manual updates
@@ -49,12 +51,23 @@ class DiaryDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
-  String _selectedMode = 'intermediate';
+  String _selectedMode = 'intermediate'; // Will be updated from provider
   bool _isCorrecting = false;
   bool _isCreatingCards = false;
   bool _isDeleting = false;
   Set<int> _selectedCorrections = {};
   bool _isSelectMode = false;
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Initialize with the default correction mode from settings (only once)
+    if (!_initialized) {
+      _selectedMode = ref.read(correctionModeProvider).code;
+      _initialized = true;
+    }
+  }
 
   Future<void> _runCorrection() async {
     setState(() => _isCorrecting = true);
@@ -89,18 +102,20 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
       ref.invalidate(diaryListProvider);
 
       if (mounted) {
+        final s = ref.read(stringsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Correction complete!'),
+          SnackBar(
+            content: Text(s.correctionComplete),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
+        final s = ref.read(stringsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Correction failed: $e'),
+            content: Text('${s.correctionFailed}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -113,10 +128,11 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
   }
 
   Future<void> _createSelectedReviewCards() async {
+    final s = ref.read(stringsProvider);
     if (_selectedCorrections.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least one correction'),
+        SnackBar(
+          content: Text(s.noSelectionsError),
           backgroundColor: Colors.orange,
         ),
       );
@@ -136,7 +152,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
         final cardCount = result['created'] ?? 0;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Created $cardCount review cards!'),
+            content: Text(s.cardsCreated(cardCount)),
             backgroundColor: Colors.green,
           ),
         );
@@ -149,7 +165,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to create cards: $e'),
+            content: Text('${s.cardCreationFailed}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -162,20 +178,21 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
   }
 
   Future<void> _deleteDiary() async {
+    final s = ref.read(stringsProvider);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Diary'),
-        content: const Text('Are you sure you want to delete this diary? This action cannot be undone.'),
+        title: Text(s.deleteDiaryTitle),
+        content: Text(s.deleteDiaryConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(s.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text(s.delete),
           ),
         ],
       ),
@@ -192,9 +209,10 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
       ref.invalidate(diaryListProvider);
 
       if (mounted) {
+        final s = ref.read(stringsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Diary deleted'),
+          SnackBar(
+            content: Text(s.diaryDeleted),
             backgroundColor: Colors.green,
           ),
         );
@@ -202,9 +220,10 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final s = ref.read(stringsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to delete: $e'),
+            content: Text('${s.deleteFailed2}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -281,6 +300,8 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
   }
 
   Widget _buildContent(BuildContext context, Map<String, dynamic> diary) {
+    final s = ref.watch(stringsProvider);
+    
     final date = diary['date'] as String? ?? '';
     final originalText = diary['originalText'] as String? ?? '';
     final correctedText = diary['correctedText'] as String?;
@@ -309,7 +330,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
 
           // Original Text Section
           Text(
-            'Original',
+            s.originalDiary,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -332,17 +353,17 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
 
           // Correction Mode Selector (always show to allow re-correction)
           Text(
-            'AI Correction',
+            s.aiCorrection,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
           ),
           const SizedBox(height: 8),
           SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'beginner', label: Text('Beginner')),
-              ButtonSegment(value: 'intermediate', label: Text('Intermediate')),
-              ButtonSegment(value: 'advanced', label: Text('Advanced')),
+            segments: [
+              ButtonSegment(value: 'beginner', label: Text(s.beginner)),
+              ButtonSegment(value: 'intermediate', label: Text(s.intermediate)),
+              ButtonSegment(value: 'advanced', label: Text(s.advanced)),
             ],
             selected: {_selectedMode},
             onSelectionChanged: (Set<String> selection) {
@@ -350,7 +371,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
             },
           ),
           const SizedBox(height: 8),
-          _buildModeDescription(),
+          _buildModeDescription(s),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -364,10 +385,10 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
                     )
                   : const Icon(Icons.auto_fix_high),
               label: Text(_isCorrecting
-                  ? 'Correcting...'
+                  ? s.correcting
                   : hasCorrections
-                      ? 'Re-run AI Correction'
-                      : 'Run AI Correction'),
+                      ? s.reCorrect
+                      : s.runAiCorrection),
             ),
           ),
 
@@ -375,7 +396,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
           if (hasCorrections) ...[
             const SizedBox(height: 24),
             Text(
-              'Corrected',
+              s.corrected,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.primary,
@@ -405,7 +426,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Corrections (${corrections.length})',
+                  s.corrections(corrections.length),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -420,7 +441,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
                             _isSelectMode = false;
                           });
                         },
-                        child: const Text('Cancel'),
+                        child: Text(s.cancel),
                       ),
                       const SizedBox(width: 8),
                       FilledButton.icon(
@@ -433,8 +454,8 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
                               )
                             : const Icon(Icons.add_card, size: 18),
                         label: Text(_isCreatingCards
-                            ? 'Creating...'
-                            : 'Add ${_selectedCorrections.length} to Cards'),
+                            ? s.creating
+                            : s.addToCards(_selectedCorrections.length)),
                       ),
                     ] else
                       TextButton.icon(
@@ -442,7 +463,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
                           setState(() => _isSelectMode = true);
                         },
                         icon: const Icon(Icons.add_card, size: 18),
-                        label: const Text('Add to Review Cards'),
+                        label: Text(s.addToReviewCards),
                       ),
                   ],
                 ),
@@ -453,7 +474,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  'Select corrections to add to your review cards',
+                  s.selectCorrectionsHint,
                   style: TextStyle(color: Colors.grey[600], fontSize: 13),
                 ),
               ),
@@ -468,17 +489,17 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
     );
   }
 
-  Widget _buildModeDescription() {
+  Widget _buildModeDescription(AppStrings s) {
     String description;
     switch (_selectedMode) {
       case 'beginner':
-        description = 'Focus on basic grammar, spelling, and missing articles.';
+        description = s.beginnerDesc;
         break;
       case 'intermediate':
-        description = 'Includes word choice improvements and natural phrasing.';
+        description = s.intermediateDesc;
         break;
       case 'advanced':
-        description = 'Comprehensive corrections including style and idioms.';
+        description = s.advancedDesc;
         break;
       default:
         description = '';

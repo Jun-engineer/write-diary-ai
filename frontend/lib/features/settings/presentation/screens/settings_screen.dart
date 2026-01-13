@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/data/auth_provider.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/providers/theme_provider.dart';
+import '../../../../core/providers/locale_provider.dart';
+import '../../../../core/providers/correction_mode_provider.dart';
+import 'terms_of_service_screen.dart';
+import 'privacy_policy_screen.dart';
 
 /// Provider for scan usage data
 final scanUsageProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
@@ -25,30 +30,129 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isDeleting = false;
 
-  Future<void> _editDisplayName(String currentName) async {
+  String _getThemeModeText(ThemeMode mode, AppStrings s) {
+    switch (mode) {
+      case ThemeMode.system:
+        return s.systemDefault;
+      case ThemeMode.light:
+        return s.lightMode;
+      case ThemeMode.dark:
+        return s.darkModeOption;
+    }
+  }
+
+  void _showThemeModeDialog(BuildContext context, WidgetRef ref, ThemeMode currentMode, AppStrings s) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(s.selectTheme),
+        children: [
+          RadioListTile<ThemeMode>(
+            title: Text(s.systemDefault),
+            value: ThemeMode.system,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(themeModeProvider.notifier).setThemeMode(value!);
+              Navigator.pop(context);
+            },
+          ),
+          RadioListTile<ThemeMode>(
+            title: Text(s.lightMode),
+            value: ThemeMode.light,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(themeModeProvider.notifier).setThemeMode(value!);
+              Navigator.pop(context);
+            },
+          ),
+          RadioListTile<ThemeMode>(
+            title: Text(s.darkModeOption),
+            value: ThemeMode.dark,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(themeModeProvider.notifier).setThemeMode(value!);
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context, WidgetRef ref, AppLocale currentLocale, AppStrings s) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(s.selectLanguage),
+        children: [
+          RadioListTile<AppLocale>(
+            title: const Text('日本語'),
+            value: AppLocale.japanese,
+            groupValue: currentLocale,
+            onChanged: (value) {
+              ref.read(localeProvider.notifier).setLocale(value!);
+              Navigator.pop(context);
+            },
+          ),
+          RadioListTile<AppLocale>(
+            title: const Text('English'),
+            value: AppLocale.english,
+            groupValue: currentLocale,
+            onChanged: (value) {
+              ref.read(localeProvider.notifier).setLocale(value!);
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCorrectionModeDialog(BuildContext context, WidgetRef ref, CorrectionMode currentMode, AppStrings s) {
+    final isJapanese = ref.read(localeProvider) == AppLocale.japanese;
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(s.selectCorrectionMode),
+        children: CorrectionMode.values.map((mode) {
+          return RadioListTile<CorrectionMode>(
+            title: Text(mode.getDisplayName(isJapanese)),
+            value: mode,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(correctionModeProvider.notifier).setCorrectionMode(value!);
+              Navigator.pop(context);
+            },
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Future<void> _editDisplayName(String currentName, AppStrings s) async {
     final controller = TextEditingController(text: currentName);
     
     final newName = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Display Name'),
+        title: Text(s.editDisplayName),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Display Name',
-            hintText: 'Enter your display name',
+          decoration: InputDecoration(
+            labelText: s.displayName,
+            hintText: s.enterDisplayName,
           ),
           textCapitalization: TextCapitalization.words,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(s.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Save'),
+            child: Text(s.save),
           ),
         ],
       ),
@@ -66,8 +170,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Display name updated'),
+          SnackBar(
+            content: Text(s.displayNameUpdated),
             backgroundColor: Colors.green,
           ),
         );
@@ -76,7 +180,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update: $e'),
+            content: Text('${s.updateFailed}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -84,23 +188,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _deleteAccount() async {
+  Future<void> _deleteAccount(AppStrings s) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: const Text(
-          'Are you sure you want to delete your account? This action cannot be undone. All your diaries and data will be permanently deleted.',
-        ),
+        title: Text(s.deleteAccountTitle),
+        content: Text(s.deleteAccountConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(s.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text(s.delete),
           ),
         ],
       ),
@@ -117,8 +219,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         await ref.read(authProvider.notifier).signOut();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account deleted successfully'),
+          SnackBar(
+            content: Text(s.accountDeleted),
             backgroundColor: Colors.green,
           ),
         );
@@ -127,7 +229,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to delete account: $e'),
+            content: Text('${s.deleteFailed}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -143,10 +245,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final scanUsageAsync = ref.watch(scanUsageProvider);
     final userProfileAsync = ref.watch(userProfileProvider);
+    final s = ref.watch(stringsProvider);
+    final locale = ref.watch(localeProvider);
+    final isJapanese = locale == AppLocale.japanese;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(s.settings),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -162,18 +267,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // User Info Section
           _buildSection(
             context,
-            title: 'Account',
+            title: s.account,
             children: [
               userProfileAsync.when(
-                loading: () => const ListTile(
-                  leading: CircleAvatar(child: Icon(Icons.person)),
-                  title: Text('Loading...'),
-                  subtitle: Text('Free Plan'),
+                loading: () => ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.person)),
+                  title: Text(s.loading),
+                  subtitle: Text(s.freePlan),
                 ),
-                error: (_, __) => const ListTile(
-                  leading: CircleAvatar(child: Icon(Icons.person)),
-                  title: Text('Error loading profile'),
-                  subtitle: Text('Tap to retry'),
+                error: (_, __) => ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.person)),
+                  title: Text(s.loadingError),
+                  subtitle: Text(s.tapToRetry),
                 ),
                 data: (profile) {
                   final displayName = profile['displayName'] as String? ?? 'User';
@@ -193,10 +298,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         const SizedBox(width: 4),
                         IconButton(
                           icon: const Icon(Icons.edit, size: 18),
-                          onPressed: () => _editDisplayName(displayName),
+                          onPressed: () => _editDisplayName(displayName, s),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          tooltip: 'Edit display name',
+                          tooltip: s.editDisplayName,
                         ),
                       ],
                     ),
@@ -225,12 +330,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     trailing: plan != 'premium'
                         ? TextButton(
                             onPressed: () {
-                              // TODO: Navigate to subscription
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Coming soon!')),
+                                SnackBar(content: Text(s.comingSoon)),
                               );
                             },
-                            child: const Text('Upgrade'),
+                            child: Text(s.upgrade),
                           )
                         : null,
                   );
@@ -244,17 +348,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // Correction Settings
           _buildSection(
             context,
-            title: 'Correction',
+            title: s.correctionSettings,
             children: [
-              ListTile(
-                leading: const Icon(Icons.auto_fix_high),
-                title: const Text('Default Correction Mode'),
-                subtitle: const Text('Intermediate'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  // TODO: Show mode selector
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming soon!')),
+              Consumer(
+                builder: (context, ref, _) {
+                  final correctionMode = ref.watch(correctionModeProvider);
+                  return ListTile(
+                    leading: const Icon(Icons.auto_fix_high),
+                    title: Text(s.defaultCorrectionMode),
+                    subtitle: Text(correctionMode.getDisplayName(isJapanese)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _showCorrectionModeDialog(context, ref, correctionMode, s),
                   );
                 },
               ),
@@ -266,40 +370,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // Usage Section
           _buildSection(
             context,
-            title: 'Today\'s Usage',
+            title: s.todaysUsage,
             children: [
               scanUsageAsync.when(
-                loading: () => const ListTile(
-                  leading: Icon(Icons.camera_alt),
-                  title: Text('Scans Used'),
-                  trailing: SizedBox(
+                loading: () => ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: Text(s.scansUsed),
+                  trailing: const SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
-                error: (_, __) => const ListTile(
-                  leading: Icon(Icons.camera_alt),
-                  title: Text('Scans Used'),
-                  trailing: Text('-- / --'),
+                error: (error, __) => ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: Text(s.scansUsed),
+                  subtitle: Text('${s.loadingError}: $error'),
+                  trailing: const Text('-- / --'),
                 ),
                 data: (usage) {
-                  final used = usage['usedToday'] ?? usage['count'] ?? 0;
-                  final limit = usage['dailyLimit'] ?? usage['limit'] ?? 1;
-                  final plan = usage['plan'] ?? 'free';
+                  final count = usage['count'] ?? 0;
+                  final limit = usage['limit'] ?? 1;
+                  final isPremium = limit >= 999;
+                  
+                  final usageText = isPremium 
+                      ? s.noLimit
+                      : '$count / $limit';
+                  
                   return ListTile(
                     leading: const Icon(Icons.camera_alt),
-                    title: const Text('Scans Used'),
-                    subtitle: Text('Plan: ${plan.toString().toUpperCase()}'),
-                    trailing: Text('$used / $limit'),
+                    title: Text(s.scansUsed),
+                    subtitle: Text('${s.plan}: ${isPremium ? "PREMIUM" : "FREE"}'),
+                    trailing: Text(
+                      usageText,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isPremium ? Colors.amber[700] : null,
+                      ),
+                    ),
                   );
                 },
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Text(
-                  'Free plan includes 1 scan per day. Upgrade to Premium for unlimited scans.',
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                  s.freePlanInfo,
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
                 ),
               ),
             ],
@@ -310,29 +426,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // App Settings
           _buildSection(
             context,
-            title: 'App',
+            title: s.app,
             children: [
-              SwitchListTile(
-                secondary: const Icon(Icons.dark_mode),
-                title: const Text('Dark Mode'),
-                subtitle: const Text('Follow system'),
-                value: false,
-                onChanged: (value) {
-                  // TODO: Implement theme switching
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming soon!')),
+              Consumer(
+                builder: (context, ref, _) {
+                  final themeMode = ref.watch(themeModeProvider);
+                  return ListTile(
+                    leading: const Icon(Icons.dark_mode),
+                    title: Text(s.darkMode),
+                    subtitle: Text(_getThemeModeText(themeMode, s)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _showThemeModeDialog(context, ref, themeMode, s),
                   );
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.language),
-                title: const Text('Language'),
-                subtitle: const Text('English'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  // TODO: Show language selector
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming soon!')),
+              Consumer(
+                builder: (context, ref, _) {
+                  final currentLocale = ref.watch(localeProvider);
+                  return ListTile(
+                    leading: const Icon(Icons.language),
+                    title: Text(s.language),
+                    subtitle: Text(currentLocale.displayName),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _showLanguageDialog(context, ref, currentLocale, s),
                   );
                 },
               ),
@@ -344,27 +460,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // About Section
           _buildSection(
             context,
-            title: 'About',
+            title: s.about,
             children: [
-              const ListTile(
-                leading: Icon(Icons.info_outline),
-                title: Text('Version'),
-                subtitle: Text('1.0.0'),
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: Text(s.version),
+                subtitle: const Text('1.0.0'),
               ),
               ListTile(
                 leading: const Icon(Icons.description_outlined),
-                title: const Text('Terms of Service'),
+                title: Text(s.termsOfService),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  // TODO: Open terms
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TermsOfServiceScreen(),
+                    ),
+                  );
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.privacy_tip_outlined),
-                title: const Text('Privacy Policy'),
+                title: Text(s.privacyPolicy),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  // TODO: Open privacy policy
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacyPolicyScreen(),
+                    ),
+                  );
                 },
               ),
             ],
@@ -380,26 +506,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('Log Out'),
-                    content: const Text('Are you sure you want to log out?'),
+                    title: Text(s.logOut),
+                    content: Text(s.logOutConfirm),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
+                        child: Text(s.cancel),
                       ),
                       TextButton(
                         onPressed: () {
                           Navigator.pop(context);
                           ref.read(authProvider.notifier).signOut();
                         },
-                        child: const Text('Log Out'),
+                        child: Text(s.logOut),
                       ),
                     ],
                   ),
                 );
               },
               icon: const Icon(Icons.logout),
-              label: const Text('Log Out'),
+              label: Text(s.logOut),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,
                 side: const BorderSide(color: Colors.red),
@@ -411,7 +537,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextButton.icon(
-              onPressed: _isDeleting ? null : _deleteAccount,
+              onPressed: _isDeleting ? null : () => _deleteAccount(s),
               icon: _isDeleting
                   ? const SizedBox(
                       width: 16,
@@ -419,7 +545,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red),
                     )
                   : const Icon(Icons.delete_forever),
-              label: Text(_isDeleting ? 'Deleting...' : 'Delete Account'),
+              label: Text(_isDeleting ? s.deleting : s.deleteAccount),
               style: TextButton.styleFrom(
                 foregroundColor: Colors.red,
               ),

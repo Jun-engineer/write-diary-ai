@@ -110,14 +110,14 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No review cards yet',
+                    '復習カードがまだありません',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: Colors.grey[600],
                         ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Create cards from your diary corrections!',
+                    '日記の添削からカードを作成しましょう！',
                     style: TextStyle(color: Colors.grey[500]),
                   ),
                 ],
@@ -238,7 +238,7 @@ class _ReviewCardItemState extends State<_ReviewCardItem> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Tap to reveal answer',
+                      'タップして答えを見る',
                       style: TextStyle(
                         color: Colors.grey[400],
                         fontSize: 12,
@@ -255,7 +255,7 @@ class _ReviewCardItemState extends State<_ReviewCardItem> {
                         Icon(Icons.check_circle, color: Colors.green[600], size: 18),
                         const SizedBox(width: 4),
                         Text(
-                          'Correct answer:',
+                          '正しい表現:',
                           style: TextStyle(
                             color: Colors.grey[500],
                             fontSize: 12,
@@ -280,7 +280,7 @@ class _ReviewCardItemState extends State<_ReviewCardItem> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'Context: $context_',
+                          '文脈: $context_',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 12,
