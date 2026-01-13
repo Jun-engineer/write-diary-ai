@@ -40,3 +40,6 @@ npm-debug.log*
 
 # Test
 coverage/
+
+# Internal documentation (not for GitHub)
+MONETIZATION_POLICY.md
