@@ -161,6 +161,24 @@ class ApiService {
     return response.data;
   }
 
+  /// Grant bonus scan after watching rewarded ad
+  Future<Map<String, dynamic>> grantBonusScan() async {
+    final response = await _dio.post('/scan-usage/bonus');
+    return response.data;
+  }
+
+  /// Get today's correction usage
+  Future<Map<String, dynamic>> getCorrectionUsage() async {
+    final response = await _dio.get('/correction-usage/today');
+    return response.data;
+  }
+
+  /// Grant bonus correction after watching rewarded ad
+  Future<Map<String, dynamic>> grantBonusCorrection() async {
+    final response = await _dio.post('/correction-usage/bonus');
+    return response.data;
+  }
+
   // ==================== User APIs ====================
 
   /// Get current user profile

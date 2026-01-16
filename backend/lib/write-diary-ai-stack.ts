@@ -68,6 +68,16 @@ export class WriteDiaryAiStack extends cdk.Stack {
       timeToLiveAttribute: 'ttl', // Auto-cleanup old records
     });
 
+    // Correction Usage Table
+    const correctionUsageTable = new dynamodb.Table(this, 'CorrectionUsageTable', {
+      tableName: 'WriteDiaryAi-CorrectionUsage',
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'date', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      timeToLiveAttribute: 'ttl', // Auto-cleanup old records
+    });
+
     // ========================================
     // S3 Bucket for scanned images
     // ========================================
@@ -146,6 +156,7 @@ export class WriteDiaryAiStack extends cdk.Stack {
       DIARIES_TABLE: diariesTable.tableName,
       REVIEW_CARDS_TABLE: reviewCardsTable.tableName,
       SCAN_USAGE_TABLE: scanUsageTable.tableName,
+      CORRECTION_USAGE_TABLE: correctionUsageTable.tableName,
       IMAGES_BUCKET: imagesBucket.bucketName,
       NODE_OPTIONS: '--enable-source-maps',
     };
@@ -272,6 +283,30 @@ export class WriteDiaryAiStack extends cdk.Stack {
       handler: 'handler',
     });
 
+    // Grant Bonus Scan Handler (for rewarded ads)
+    const grantBonusScanHandler = new NodejsFunction(this, 'GrantBonusScanHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-GrantBonusScan',
+      entry: path.join(__dirname, '../lambda/handlers/scan-usage/grant-bonus.ts'),
+      handler: 'handler',
+    });
+
+    // Correction Usage Handler
+    const getCorrectionUsageHandler = new NodejsFunction(this, 'GetCorrectionUsageHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-GetCorrectionUsage',
+      entry: path.join(__dirname, '../lambda/handlers/correction-usage/get.ts'),
+      handler: 'handler',
+    });
+
+    // Grant Bonus Correction Handler (for rewarded ads)
+    const grantBonusCorrectionHandler = new NodejsFunction(this, 'GrantBonusCorrectionHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-GrantBonusCorrection',
+      entry: path.join(__dirname, '../lambda/handlers/correction-usage/grant-bonus.ts'),
+      handler: 'handler',
+    });
+
     // Delete Account Handler
     const deleteAccountHandler = new NodejsFunction(this, 'DeleteAccountHandler', {
       ...commonLambdaProps,
@@ -329,6 +364,10 @@ export class WriteDiaryAiStack extends cdk.Stack {
       ],
     }));
 
+    // Grant scanDiaryHandler permissions for scan limit check
+    usersTable.grantReadData(scanDiaryHandler);
+    scanUsageTable.grantReadData(scanDiaryHandler);
+
     reviewCardsTable.grantReadWriteData(createReviewCardsHandler);
     reviewCardsTable.grantReadData(getReviewCardsHandler);
     reviewCardsTable.grantReadWriteData(deleteReviewCardHandler);
@@ -338,11 +377,28 @@ export class WriteDiaryAiStack extends cdk.Stack {
     scanUsageTable.grantReadData(getScanUsageHandler);
     usersTable.grantReadData(getScanUsageHandler); // Check user plan
 
+    // Grant permissions for bonus scan handler
+    scanUsageTable.grantReadWriteData(grantBonusScanHandler);
+    usersTable.grantReadData(grantBonusScanHandler); // Check user plan
+
+    // Grant permissions for correction usage handlers
+    correctionUsageTable.grantReadData(getCorrectionUsageHandler);
+    usersTable.grantReadData(getCorrectionUsageHandler); // Check user plan
+
+    // Grant permissions for bonus correction handler
+    correctionUsageTable.grantReadWriteData(grantBonusCorrectionHandler);
+    usersTable.grantReadData(grantBonusCorrectionHandler); // Check user plan
+
+    // Grant permissions for correct diary handler (limit checking)
+    correctionUsageTable.grantReadWriteData(correctDiaryHandler);
+    usersTable.grantReadData(correctDiaryHandler); // Check user plan
+
     // Grant permissions for delete account handler
     usersTable.grantReadWriteData(deleteAccountHandler);
     diariesTable.grantReadWriteData(deleteAccountHandler);
     reviewCardsTable.grantReadWriteData(deleteAccountHandler);
     scanUsageTable.grantReadWriteData(deleteAccountHandler);
+    correctionUsageTable.grantReadWriteData(deleteAccountHandler);
 
     // Grant permissions for user profile handlers
     usersTable.grantReadData(getUserProfileHandler);
@@ -394,9 +450,9 @@ export class WriteDiaryAiStack extends cdk.Stack {
     const correct = diary.addResource('correct');
     correct.addMethod('POST', new apigateway.LambdaIntegration(correctDiaryHandler), authorizationOptions);
 
-    // /scan endpoint (OCR with Claude Vision) - No auth required for now
+    // /scan endpoint (OCR with Claude Vision) - Requires auth for scan limit check
     const scan = api.root.addResource('scan');
-    scan.addMethod('POST', new apigateway.LambdaIntegration(scanDiaryHandler));
+    scan.addMethod('POST', new apigateway.LambdaIntegration(scanDiaryHandler), authorizationOptions);
 
     // /review-cards endpoints
     const reviewCards = api.root.addResource('review-cards');
@@ -410,6 +466,19 @@ export class WriteDiaryAiStack extends cdk.Stack {
     const scanUsage = api.root.addResource('scan-usage');
     const scanUsageToday = scanUsage.addResource('today');
     scanUsageToday.addMethod('GET', new apigateway.LambdaIntegration(getScanUsageHandler), authorizationOptions);
+
+    // /scan-usage/bonus endpoint - Grant bonus scan after watching rewarded ad
+    const scanUsageBonus = scanUsage.addResource('bonus');
+    scanUsageBonus.addMethod('POST', new apigateway.LambdaIntegration(grantBonusScanHandler), authorizationOptions);
+
+    // /correction-usage endpoints
+    const correctionUsage = api.root.addResource('correction-usage');
+    const correctionUsageToday = correctionUsage.addResource('today');
+    correctionUsageToday.addMethod('GET', new apigateway.LambdaIntegration(getCorrectionUsageHandler), authorizationOptions);
+
+    // /correction-usage/bonus endpoint - Grant bonus correction after watching rewarded ad
+    const correctionUsageBonus = correctionUsage.addResource('bonus');
+    correctionUsageBonus.addMethod('POST', new apigateway.LambdaIntegration(grantBonusCorrectionHandler), authorizationOptions);
 
     // /users endpoints
     const users = api.root.addResource('users');

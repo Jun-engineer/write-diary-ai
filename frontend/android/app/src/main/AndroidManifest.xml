@@ -12,6 +12,12 @@
         android:label="WriteDiary AI"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        
+        <!-- AdMob App ID -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-5434162081070782~8931537954"/>
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"

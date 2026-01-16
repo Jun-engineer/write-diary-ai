@@ -46,6 +46,14 @@ export function forbidden(message: string = 'Forbidden'): APIGatewayProxyResult 
   };
 }
 
+export function forbiddenWithData<T>(data: T): APIGatewayProxyResult {
+  return {
+    statusCode: 403,
+    headers: corsHeaders,
+    body: JSON.stringify(data),
+  };
+}
+
 export function notFound(message: string = 'Not found'): APIGatewayProxyResult {
   return {
     statusCode: 404,

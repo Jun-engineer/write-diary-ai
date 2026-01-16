@@ -14,6 +14,12 @@ final scanUsageProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref)
   return apiService.getScanUsage();
 });
 
+/// Provider for correction usage data
+final correctionUsageProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  final apiService = ref.watch(apiServiceProvider);
+  return apiService.getCorrectionUsage();
+});
+
 /// Provider for user profile data
 final userProfileProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final apiService = ref.watch(apiServiceProvider);
@@ -258,6 +264,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onPressed: () {
               ref.invalidate(userProfileProvider);
               ref.invalidate(scanUsageProvider);
+              ref.invalidate(correctionUsageProvider);
             },
           ),
         ],
@@ -390,12 +397,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 data: (usage) {
                   final count = usage['count'] ?? 0;
-                  final limit = usage['limit'] ?? 1;
-                  final isPremium = limit >= 999;
+                  final baseLimit = usage['limit'] ?? 1;
+                  final bonusCount = usage['bonusCount'] ?? 0;
+                  final isPremium = baseLimit >= 999;
                   
+                  // Total limit = base + bonus earned from ads
+                  final totalLimit = baseLimit + bonusCount;
                   final usageText = isPremium 
                       ? s.noLimit
-                      : '$count / $limit';
+                      : '$count / $totalLimit';
                   
                   return ListTile(
                     leading: const Icon(Icons.camera_alt),
@@ -408,6 +418,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: isPremium ? Colors.amber[700] : null,
                       ),
                     ),
+                  );
+                },
+              ),
+              // Correction usage
+              Consumer(
+                builder: (context, ref, _) {
+                  final correctionUsageAsync = ref.watch(correctionUsageProvider);
+                  return correctionUsageAsync.when(
+                    loading: () => ListTile(
+                      leading: const Icon(Icons.auto_fix_high),
+                      title: Text(s.correctionsUsed),
+                      trailing: const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    error: (error, __) => ListTile(
+                      leading: const Icon(Icons.auto_fix_high),
+                      title: Text(s.correctionsUsed),
+                      subtitle: Text('${s.loadingError}: $error'),
+                      trailing: const Text('-- / --'),
+                    ),
+                    data: (usage) {
+                      final count = usage['count'] ?? 0;
+                      final baseLimit = usage['limit'] ?? 3;
+                      final bonusCount = usage['bonusCount'] ?? 0;
+                      final isPremium = baseLimit >= 999;
+                      
+                      // Total limit = base + bonus earned from ads
+                      final totalLimit = baseLimit + bonusCount;
+                      final usageText = isPremium 
+                          ? s.noLimit
+                          : '$count / $totalLimit';
+                      
+                      return ListTile(
+                        leading: const Icon(Icons.auto_fix_high),
+                        title: Text(s.correctionsUsed),
+                        subtitle: Text('${s.plan}: ${isPremium ? "PREMIUM" : "FREE"}'),
+                        trailing: Text(
+                          usageText,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isPremium ? Colors.amber[700] : null,
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),

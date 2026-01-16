@@ -1,13 +1,12 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { docClient, PutCommand, GetCommand, UpdateCommand } from '../../shared/dynamodb';
-import { success, created, badRequest, unauthorized, forbidden, serverError } from '../../shared/response';
+import { docClient, PutCommand, UpdateCommand } from '../../shared/dynamodb';
+import { created, badRequest, unauthorized, serverError } from '../../shared/response';
 import { getUserIdFromEvent, parseBody, getTodayDate, generateId, now, getTTL } from '../../shared/utils';
-import { CreateDiaryRequest, CreateDiaryResponse, Diary, User, ScanUsage, PLAN_LIMITS } from '../../shared/types';
+import { CreateDiaryRequest, CreateDiaryResponse, Diary } from '../../shared/types';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const s3Client = new S3Client({});
 
-const USERS_TABLE = process.env.USERS_TABLE!;
 const DIARIES_TABLE = process.env.DIARIES_TABLE!;
 const SCAN_USAGE_TABLE = process.env.SCAN_USAGE_TABLE!;
 const IMAGES_BUCKET = process.env.IMAGES_BUCKET!;
@@ -45,13 +44,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return badRequest('inputType must be "manual" or "scan"');
     }
 
-    // If scan input, check daily limit
-    if (inputType === 'scan') {
-      const canScan = await checkScanLimit(userId);
-      if (!canScan) {
-        return forbidden('Daily scan limit reached. Upgrade to Premium for unlimited scans.');
-      }
-    }
+    // Note: Scan limit is checked during the scan operation itself,
+    // not here, because the user has already scanned at this point
 
     // Generate diary ID
     const diaryId = generateId();
@@ -101,30 +95,6 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     console.error('Error creating diary:', error);
     return serverError('Failed to create diary');
   }
-}
-
-async function checkScanLimit(userId: string): Promise<boolean> {
-  // Get user's plan
-  const userResult = await docClient.send(new GetCommand({
-    TableName: USERS_TABLE,
-    Key: { userId },
-  }));
-
-  const user = userResult.Item as User | undefined;
-  const plan = user?.plan || 'free';
-  const limit = PLAN_LIMITS[plan].scanPerDay;
-
-  // Get today's scan usage
-  const today = getTodayDate();
-  const usageResult = await docClient.send(new GetCommand({
-    TableName: SCAN_USAGE_TABLE,
-    Key: { userId, date: today },
-  }));
-
-  const usage = usageResult.Item as ScanUsage | undefined;
-  const currentCount = usage?.count || 0;
-
-  return currentCount < limit;
 }
 
 async function incrementScanUsage(userId: string): Promise<void> {

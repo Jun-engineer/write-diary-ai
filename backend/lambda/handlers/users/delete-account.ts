@@ -7,6 +7,7 @@ const USERS_TABLE = process.env.USERS_TABLE!;
 const DIARIES_TABLE = process.env.DIARIES_TABLE!;
 const REVIEW_CARDS_TABLE = process.env.REVIEW_CARDS_TABLE!;
 const SCAN_USAGE_TABLE = process.env.SCAN_USAGE_TABLE!;
+const CORRECTION_USAGE_TABLE = process.env.CORRECTION_USAGE_TABLE!;
 
 /**
  * DELETE /users/me
@@ -29,6 +30,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     // Delete scan usage records
     await deleteUserScanUsage(userId);
+
+    // Delete correction usage records
+    await deleteUserCorrectionUsage(userId);
 
     // Delete the user record itself
     await docClient.send(new DeleteCommand({
@@ -112,6 +116,31 @@ async function deleteUserScanUsage(userId: string): Promise<void> {
   for (const item of items) {
     await docClient.send(new DeleteCommand({
       TableName: SCAN_USAGE_TABLE,
+      Key: {
+        userId,
+        date: item.date,
+      },
+    }));
+  }
+}
+
+async function deleteUserCorrectionUsage(userId: string): Promise<void> {
+  // Query all correction usage records for this user
+  const result = await docClient.send(new QueryCommand({
+    TableName: CORRECTION_USAGE_TABLE,
+    KeyConditionExpression: 'userId = :userId',
+    ExpressionAttributeValues: {
+      ':userId': userId,
+    },
+  }));
+
+  const items = result.Items || [];
+  console.log(`Deleting ${items.length} correction usage records for user ${userId}`);
+
+  // Delete each correction usage record
+  for (const item of items) {
+    await docClient.send(new DeleteCommand({
+      TableName: CORRECTION_USAGE_TABLE,
       Key: {
         userId,
         date: item.date,

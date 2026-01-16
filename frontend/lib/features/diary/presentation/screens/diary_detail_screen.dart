@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/services/ad_service.dart';
 import '../../../../core/providers/locale_provider.dart';
 import '../../../../core/providers/correction_mode_provider.dart';
+import '../../../../core/providers/user_provider.dart';
 import 'diary_list_screen.dart';
 
 /// Provider for a single diary - using StateProvider to allow manual updates
@@ -65,11 +67,170 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
     // Initialize with the default correction mode from settings (only once)
     if (!_initialized) {
       _selectedMode = ref.read(correctionModeProvider).code;
+      // Preload ads for FREE users
+      final isPremium = ref.read(isPremiumProvider);
+      if (!isPremium) {
+        final adService = ref.read(adServiceProvider);
+        adService.loadInterstitialAd();
+        adService.loadRewardedAd();
+      }
       _initialized = true;
     }
   }
 
+  /// Check if correction limit is reached and show dialog
+  Future<bool> _checkCorrectionLimit() async {
+    final isPremium = ref.read(isPremiumProvider);
+    if (isPremium) return true; // Premium users have unlimited corrections
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final usage = await apiService.getCorrectionUsage();
+      
+      final count = usage['count'] as int? ?? 0;
+      final baseLimit = usage['limit'] as int? ?? 3;
+      final bonusCount = usage['bonusCount'] as int? ?? 0;
+      final maxBonus = usage['maxBonus'] as int? ?? 2;
+      final totalLimit = baseLimit + bonusCount;
+      
+      // Check if user has corrections remaining
+      if (count < totalLimit) {
+        return true; // Has corrections remaining
+      }
+      
+      // No corrections remaining, check if can watch ad for bonus
+      if (bonusCount < maxBonus) {
+        final watchAd = await _showCorrectionLimitDialog(maxBonus - bonusCount);
+        if (watchAd == true && mounted) {
+          return await _watchAdForBonusCorrection();
+        }
+        return false; // User cancelled
+      } else {
+        // Max bonus reached
+        await _showMaxBonusReachedDialog();
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error checking correction usage: $e');
+      // If error checking, continue with correction (backend will check again)
+      return true;
+    }
+  }
+
+  Future<bool?> _showCorrectionLimitDialog(int remainingBonus) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Daily Correction Limit Reached'),
+        content: Text(
+          'You\'ve used your free corrections for today.\n\n'
+          'Watch a short ad to get 1 bonus correction!\n'
+          '($remainingBonus bonus corrections remaining today)\n\n'
+          'After watching, tap "Run AI Correction" again to use your bonus.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Watch Ad'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showMaxBonusReachedDialog() async {
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Daily Correction Limit Reached'),
+        content: const Text(
+          'You\'ve used all your corrections for today, including bonus corrections.\n\n'
+          'Come back tomorrow for more free corrections, or upgrade to Premium for unlimited AI corrections!',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _watchAdForBonusCorrection() async {
+    final adService = ref.read(adServiceProvider);
+    
+    // Show loading
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Loading ad...'), duration: Duration(seconds: 5)),
+      );
+    }
+
+    // Wait for ad to load if not ready
+    if (!adService.isRewardedAdReady) {
+      adService.loadRewardedAd();
+      for (int i = 0; i < 20; i++) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (adService.isRewardedAdReady) break;
+      }
+    }
+
+    if (!adService.isRewardedAdReady) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ad not available. Please try again in a moment.')),
+        );
+      }
+      adService.loadRewardedAd();
+      return false;
+    }
+
+    // Show rewarded ad
+    final rewardEarned = await adService.showRewardedAd();
+
+    if (rewardEarned && mounted) {
+      try {
+        // Grant bonus correction only - don't auto-run correction
+        final apiService = ref.read(apiServiceProvider);
+        await apiService.grantBonusCorrection();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bonus correction granted! Tap "Run AI Correction" to use it.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+
+        // Return false - user needs to tap the button again to run correction
+        // This prevents losing the correction result if user navigates away
+        return false;
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to grant bonus: $e')),
+          );
+        }
+        return false;
+      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please watch the complete ad to earn the bonus correction.')),
+      );
+    }
+    return false;
+  }
+
   Future<void> _runCorrection() async {
+    // Check correction limit first
+    final canCorrect = await _checkCorrectionLimit();
+    if (!canCorrect) return;
+
     setState(() => _isCorrecting = true);
 
     try {
@@ -83,25 +244,27 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
       debugPrint('correctedText: ${result['correctedText']}');
       debugPrint('corrections: ${result['corrections']}');
 
-      // Update the local state immediately with the correction result
-      final notifier = ref.read(diaryDetailProvider(widget.diaryId).notifier);
-      final currentState = ref.read(diaryDetailProvider(widget.diaryId));
-      
-      if (currentState.hasValue) {
-        final updatedDiary = Map<String, dynamic>.from(currentState.value!);
-        updatedDiary['correctedText'] = result['correctedText'];
-        updatedDiary['corrections'] = result['corrections'];
-        debugPrint('Updated diary: $updatedDiary');
-        notifier.updateDiary(updatedDiary);
-      } else {
-        debugPrint('No current state value, refreshing from server');
-        await notifier.refresh();
-      }
+      // Store the result locally in case we need it after ad
+      final correctedText = result['correctedText'];
+      final corrections = result['corrections'];
 
-      // Also refresh the list
-      ref.invalidate(diaryListProvider);
-
+      // Update the UI state FIRST, before showing any ads
       if (mounted) {
+        final notifier = ref.read(diaryDetailProvider(widget.diaryId).notifier);
+        final currentState = ref.read(diaryDetailProvider(widget.diaryId));
+        
+        if (currentState.hasValue) {
+          final updatedDiary = Map<String, dynamic>.from(currentState.value!);
+          updatedDiary['correctedText'] = correctedText;
+          updatedDiary['corrections'] = corrections;
+          debugPrint('Updated diary: $updatedDiary');
+          notifier.updateDiary(updatedDiary);
+        }
+
+        // Also refresh the list
+        ref.invalidate(diaryListProvider);
+
+        // Show success message BEFORE the ad
         final s = ref.read(stringsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -110,18 +273,54 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
           ),
         );
       }
+
+      // Stop the loading indicator BEFORE showing the ad so user sees the result
+      if (mounted) {
+        setState(() => _isCorrecting = false);
+      }
+
+      // Show ad for FREE users AFTER showing the result
+      final isPremium = ref.read(isPremiumProvider);
+      if (!isPremium && mounted) {
+        // Small delay to let the UI update and user see the result
+        await Future.delayed(const Duration(milliseconds: 500));
+        final adService = ref.read(adServiceProvider);
+        await adService.showInterstitialAd();
+        // Preload next ad
+        adService.loadInterstitialAd();
+      }
+
+      // CRITICAL: After ad closes, the autoDispose provider might have been
+      // disposed and recreated. Force refresh to ensure corrected data shows.
+      if (mounted) {
+        // Give UI a moment to settle after ad closes
+        await Future.delayed(const Duration(milliseconds: 300));
+        
+        // Refresh from server - the corrected data is already saved there
+        final notifier = ref.read(diaryDetailProvider(widget.diaryId).notifier);
+        await notifier.refresh();
+        debugPrint('Refreshed diary after ad closed');
+      }
     } catch (e) {
       if (mounted) {
         final s = ref.read(stringsProvider);
+        
+        // Check if it's a 403 error (correction limit reached)
+        String errorMessage = '$e';
+        if (e.toString().contains('403')) {
+          errorMessage = 'Daily correction limit reached. Try again tomorrow or watch an ad for bonus corrections.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${s.correctionFailed}: $e'),
+            content: Text('${s.correctionFailed}: $errorMessage'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    } finally {
-      if (mounted) {
+      
+      // Only set _isCorrecting = false here if we haven't already (in case of error)
+      if (mounted && _isCorrecting) {
         setState(() => _isCorrecting = false);
       }
     }
@@ -425,15 +624,20 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  s.corrections(corrections.length),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                Flexible(
+                  child: Text(
+                    s.corrections(corrections.length),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                Row(
-                  children: [
-                    if (_isSelectMode) ...[
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isSelectMode) ...[
                       TextButton(
                         onPressed: () {
                           setState(() {
@@ -457,15 +661,16 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
                             ? s.creating
                             : s.addToCards(_selectedCorrections.length)),
                       ),
-                    ] else
-                      TextButton.icon(
-                        onPressed: () {
-                          setState(() => _isSelectMode = true);
-                        },
-                        icon: const Icon(Icons.add_card, size: 18),
-                        label: Text(s.addToReviewCards),
-                      ),
-                  ],
+                      ] else
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() => _isSelectMode = true);
+                          },
+                          icon: const Icon(Icons.add_card, size: 18),
+                          label: Text(s.addToReviewCards),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),

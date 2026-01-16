@@ -48,6 +48,7 @@ export interface ScanUsage {
   userId: string;
   date: string; // YYYY-MM-DD
   count: number;
+  bonusCount: number; // Bonus scans from watching ads
   ttl?: number; // TTL for auto-cleanup
 }
 
@@ -85,14 +86,38 @@ export interface CreateReviewCardsResponse {
 export interface GetScanUsageResponse {
   count: number;
   limit: number;
+  bonusCount: number;
+  maxBonus: number;
+}
+
+export interface GetCorrectionUsageResponse {
+  count: number;
+  limit: number;
+  bonusCount: number;
+  maxBonus: number;
+}
+
+// Correction Usage types (same structure as ScanUsage but in separate table)
+export interface CorrectionUsage {
+  userId: string;
+  date: string; // YYYY-MM-DD
+  count: number;
+  bonusCount?: number;
+  ttl?: number;
 }
 
 // Plan limits
 export const PLAN_LIMITS = {
   free: {
     scanPerDay: 1,
+    maxScanBonusPerDay: 2, // Max bonus scans from watching ads
+    correctionPerDay: 3,
+    maxCorrectionBonusPerDay: 2, // Max bonus corrections from watching ads
   },
   premium: {
     scanPerDay: 999, // Virtually unlimited
+    maxScanBonusPerDay: 0, // Premium users don't need bonus
+    correctionPerDay: 999,
+    maxCorrectionBonusPerDay: 0,
   },
 } as const;

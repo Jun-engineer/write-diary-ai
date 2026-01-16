@@ -68,6 +68,7 @@ class AppStrings {
   String get defaultCorrectionMode => locale == AppLocale.japanese ? 'デフォルトの添削モード' : 'Default Correction Mode';
   String get todaysUsage => locale == AppLocale.japanese ? '今日の使用量' : "Today's Usage";
   String get scansUsed => locale == AppLocale.japanese ? 'スキャン使用回数' : 'Scans Used';
+  String get correctionsUsed => locale == AppLocale.japanese ? 'AI添削使用回数' : 'AI Corrections Used';
   String get app => locale == AppLocale.japanese ? 'アプリ' : 'App';
   String get darkMode => locale == AppLocale.japanese ? 'ダークモード' : 'Dark Mode';
   String get followSystem => locale == AppLocale.japanese ? 'システム設定に従う' : 'Follow system';
@@ -93,8 +94,8 @@ class AppStrings {
 
   // Usage info
   String get freePlanInfo => locale == AppLocale.japanese 
-      ? '無料プランでは1日1回のスキャンが可能です。プレミアムにアップグレードすると無制限にスキャンできます。'
-      : 'Free plan includes 1 scan per day. Upgrade to Premium for unlimited scans.';
+      ? '無料プランでは1日1回のスキャンと3回のAI添削が可能です。広告を見ると追加で利用できます。プレミアムなら無制限！'
+      : 'Free plan: 1 scan + 3 AI corrections/day. Watch ads for bonus uses. Premium = unlimited!';
 
   // Dialogs
   String get logOutConfirm => locale == AppLocale.japanese ? 'ログアウトしますか？' : 'Are you sure you want to log out?';

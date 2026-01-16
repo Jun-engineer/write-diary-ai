@@ -6,12 +6,16 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/config/amplifyconfiguration.dart';
 import 'core/providers/theme_provider.dart';
+import 'core/services/ad_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize Amplify
   await _configureAmplify();
+  
+  // Initialize AdMob
+  await AdService.initialize();
   
   runApp(
     const ProviderScope(

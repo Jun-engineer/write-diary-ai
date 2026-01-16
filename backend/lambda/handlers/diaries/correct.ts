@@ -1,17 +1,21 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { docClient, GetCommand, UpdateCommand } from '../../shared/dynamodb';
-import { success, badRequest, unauthorized, notFound, serverError } from '../../shared/response';
-import { getUserIdFromEvent, parseBody, now } from '../../shared/utils';
+import { success, badRequest, unauthorized, notFound, forbiddenWithData, serverError } from '../../shared/response';
+import { getUserIdFromEvent, parseBody, now, getTodayDate, getTTL } from '../../shared/utils';
 import { 
   Diary, 
   CorrectDiaryRequest, 
   CorrectDiaryResponse, 
   Correction, 
-  CorrectionMode 
+  CorrectionMode,
+  User,
+  PLAN_LIMITS,
 } from '../../shared/types';
 
 const DIARIES_TABLE = process.env.DIARIES_TABLE!;
+const USERS_TABLE = process.env.USERS_TABLE!;
+const CORRECTION_USAGE_TABLE = process.env.CORRECTION_USAGE_TABLE!;
 
 // Initialize Bedrock client - use us-east-1 where models are available
 const bedrockClient = new BedrockRuntimeClient({ region: 'us-east-1' });
@@ -78,6 +82,43 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return badRequest('Invalid mode. Use: beginner, intermediate, or advanced');
     }
 
+    // Get user to check plan
+    const userResult = await docClient.send(new GetCommand({
+      TableName: USERS_TABLE,
+      Key: { userId },
+    }));
+
+    const user = userResult.Item as User | undefined;
+    const plan = user?.plan || 'free';
+    const limits = plan === 'premium' ? PLAN_LIMITS.premium : PLAN_LIMITS.free;
+
+    // Check correction usage for FREE users
+    if (plan !== 'premium') {
+      const today = getTodayDate();
+
+      const usageResult = await docClient.send(new GetCommand({
+        TableName: CORRECTION_USAGE_TABLE,
+        Key: { userId, date: today },
+      }));
+
+      const currentCount = (usageResult.Item?.count || 0) as number;
+      const bonusCount = (usageResult.Item?.bonusCount || 0) as number;
+      const totalLimit = limits.correctionPerDay + bonusCount;
+
+      if (currentCount >= totalLimit) {
+        const canWatchAd = bonusCount < limits.maxCorrectionBonusPerDay;
+        return forbiddenWithData({
+          code: 'CORRECTION_LIMIT_REACHED',
+          message: 'Daily correction limit reached',
+          count: currentCount,
+          limit: limits.correctionPerDay,
+          bonusCount: bonusCount,
+          maxBonus: limits.maxCorrectionBonusPerDay,
+          canWatchAd: canWatchAd,
+        });
+      }
+    }
+
     // Get diary from DynamoDB
     const result = await docClient.send(new GetCommand({
       TableName: DIARIES_TABLE,
@@ -109,6 +150,26 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
         ':updatedAt': now(),
       },
     }));
+
+    // Increment correction usage count for FREE users
+    if (plan !== 'premium') {
+      const today = getTodayDate();
+
+      await docClient.send(new UpdateCommand({
+        TableName: CORRECTION_USAGE_TABLE,
+        Key: { userId, date: today },
+        UpdateExpression: 'SET #count = if_not_exists(#count, :zero) + :one, #ttl = :ttl',
+        ExpressionAttributeNames: {
+          '#count': 'count',
+          '#ttl': 'ttl',
+        },
+        ExpressionAttributeValues: {
+          ':zero': 0,
+          ':one': 1,
+          ':ttl': getTTL(30), // Keep records for 30 days
+        },
+      }));
+    }
 
     const response: CorrectDiaryResponse = {
       correctedText,

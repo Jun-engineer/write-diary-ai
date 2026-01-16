@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:dio/dio.dart';
 import 'dart:io';
 import 'dart:convert';
-import '../../../../core/constants/app_config.dart';
+import '../../../../core/services/api_service.dart';
+import '../../../../core/services/ad_service.dart';
 
-class CameraScreen extends StatefulWidget {
+class CameraScreen extends ConsumerStatefulWidget {
   const CameraScreen({super.key});
 
   @override
-  State<CameraScreen> createState() => _CameraScreenState();
+  ConsumerState<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends State<CameraScreen> {
+class _CameraScreenState extends ConsumerState<CameraScreen> {
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
   bool _isProcessing = false;
@@ -65,6 +67,9 @@ class _CameraScreenState extends State<CameraScreen> {
 
       await _cameraController!.initialize();
       
+      // Preload rewarded ad for potential bonus scan
+      ref.read(adServiceProvider).loadRewardedAd();
+      
       if (mounted) {
         setState(() {
           _isCameraInitialized = true;
@@ -92,6 +97,9 @@ class _CameraScreenState extends State<CameraScreen> {
     super.dispose();
   }
 
+  // Store the captured image for retry after watching ad
+  String? _pendingImageBase64;
+
   Future<void> _captureAndProcess() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return;
@@ -112,10 +120,7 @@ class _CameraScreenState extends State<CameraScreen> {
       // Read image as base64
       final bytes = await File(imageFile.path).readAsBytes();
       final base64Image = base64Encode(bytes);
-      
-      // Determine media type from file extension
-      final extension = imageFile.path.split('.').last.toLowerCase();
-      final mediaType = extension == 'png' ? 'image/png' : 'image/jpeg';
+      _pendingImageBase64 = base64Image;
       
       // Clean up the image file
       try {
@@ -124,65 +129,212 @@ class _CameraScreenState extends State<CameraScreen> {
         // Ignore cleanup errors
       }
       
-      // Call Claude Vision API for OCR
-      final dio = Dio();
-      final response = await dio.post(
-        '${AppConfig.apiBaseUrl}/scan',
-        data: {
-          'imageBase64': base64Image,
-          'mediaType': mediaType,
-        },
-        options: Options(
-          headers: {
-            'Content-Type': 'application/json',
-            // TODO: Add Authorization header with Cognito token
-            // 'Authorization': 'Bearer $idToken',
-          },
-        ),
-      );
-      
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final extractedText = (response.data['text'] as String?)?.trim() ?? '';
-        
-        debugPrint('Claude OCR Result: $extractedText');
-        
-        if (mounted) {
-          if (extractedText.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('No text detected. Make sure the handwriting is visible.'),
-                duration: Duration(seconds: 3),
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Text recognized successfully!'),
-                duration: Duration(seconds: 1),
-              ),
-            );
-            // Navigate to editor with OCR result
-            context.go('/diaries/new', extra: {
-              'scannedText': extractedText,
-              'inputType': 'scan',
-            });
-          }
-        }
-      } else {
-        throw Exception(response.data['message'] ?? 'Failed to process image');
-      }
+      // Try to scan
+      await _performScan(base64Image);
     } catch (e, stackTrace) {
-      debugPrint('OCR Error: $e');
+      debugPrint('Capture Error: $e');
       debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to process image: $e')),
+          SnackBar(content: Text('Failed to capture image: $e')),
         );
       }
     } finally {
       if (mounted) {
         setState(() => _isProcessing = false);
       }
+    }
+  }
+
+  Future<void> _performScan(String base64Image) async {
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final extractedText = await apiService.scanImage(base64Image);
+      
+      if (mounted) {
+        if (extractedText.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No text detected. Make sure the handwriting is visible.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Text recognized successfully!'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+          // Navigate to editor with OCR result
+          context.go('/diaries/new', extra: {
+            'scannedText': extractedText,
+            'inputType': 'scan',
+          });
+        }
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 403) {
+        // Parse the error response to check if it's a scan limit error
+        await _handleScanLimitError(e.response?.data);
+      } else {
+        _showError('Failed to process image: ${e.message}');
+      }
+    } catch (e) {
+      _showError('Failed to process image: $e');
+    }
+  }
+
+  Future<void> _handleScanLimitError(dynamic responseData) async {
+    if (!mounted) return;
+
+    Map<String, dynamic>? errorData;
+    try {
+      if (responseData is String) {
+        errorData = json.decode(responseData);
+      } else if (responseData is Map) {
+        errorData = Map<String, dynamic>.from(responseData);
+      }
+      // Handle nested error structure: { error: "..." } contains JSON string
+      if (errorData != null && errorData['error'] is String) {
+        try {
+          final nestedData = json.decode(errorData['error']);
+          if (nestedData is Map) {
+            errorData = Map<String, dynamic>.from(nestedData);
+          }
+        } catch (_) {
+          // error is just a plain string, not JSON
+        }
+      }
+    } catch (_) {
+      // Not a JSON response
+    }
+
+    debugPrint('Scan limit error data: $errorData');
+    final canWatchAd = errorData?['canWatchAd'] == true;
+    final bonusCount = errorData?['bonusCount'] ?? 0;
+    final maxBonus = errorData?['maxBonus'] ?? 2;
+
+    if (canWatchAd) {
+      // Show dialog offering to watch ad for bonus scan
+      final watchAd = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Daily Scan Limit Reached'),
+          content: Text(
+            'You\'ve used your free scan for today.\n\n'
+            'Watch a short ad to get 1 bonus scan!\n'
+            '(${maxBonus - bonusCount} bonus scans remaining today)',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Watch Ad'),
+            ),
+          ],
+        ),
+      );
+
+      if (watchAd == true && mounted) {
+        await _watchAdForBonusScan();
+      }
+    } else {
+      // Max bonus already reached
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Daily Scan Limit Reached'),
+          content: const Text(
+            'You\'ve used all your scans for today, including bonus scans.\n\n'
+            'Come back tomorrow for more free scans, or upgrade to Premium for unlimited scanning!',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> _watchAdForBonusScan() async {
+    final adService = ref.read(adServiceProvider);
+    
+    // Show loading indicator
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Loading ad...'), duration: Duration(seconds: 5)),
+      );
+    }
+
+    // If ad not ready, load it and wait
+    if (!adService.isRewardedAdReady) {
+      adService.loadRewardedAd();
+      
+      // Wait for ad to load (up to 10 seconds)
+      for (int i = 0; i < 20; i++) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (adService.isRewardedAdReady) break;
+      }
+    }
+
+    // Check if ad is ready now
+    if (!adService.isRewardedAdReady) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ad not available right now. Please try again in a moment.'),
+          ),
+        );
+      }
+      // Reload for next attempt
+      adService.loadRewardedAd();
+      return;
+    }
+
+    // Show rewarded ad
+    final rewardEarned = await adService.showRewardedAd();
+
+    if (rewardEarned && mounted) {
+      try {
+        // Grant bonus scan via API
+        final apiService = ref.read(apiServiceProvider);
+        await apiService.grantBonusScan();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bonus scan granted! Retrying...'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Retry the scan with the pending image
+        if (_pendingImageBase64 != null) {
+          await _performScan(_pendingImageBase64!);
+        }
+      } catch (e) {
+        _showError('Failed to grant bonus: $e');
+      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please watch the complete ad to earn the bonus scan.'),
+        ),
+      );
+    }
+  }
+
+  void _showError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     }
   }
 

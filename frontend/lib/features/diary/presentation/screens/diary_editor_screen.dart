@@ -159,9 +159,11 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
                 children: [
                   Icon(Icons.camera_alt, size: 16, color: Colors.blue[700]),
                   const SizedBox(width: 8),
-                  Text(
-                    'Scanned from handwriting - Please review and edit if needed',
-                    style: TextStyle(fontSize: 13, color: Colors.blue[700]),
+                  Flexible(
+                    child: Text(
+                      'Scanned from handwriting - Please review and edit if needed',
+                      style: TextStyle(fontSize: 13, color: Colors.blue[700]),
+                    ),
                   ),
                 ],
               ),

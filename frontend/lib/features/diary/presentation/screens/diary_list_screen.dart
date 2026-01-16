@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/services/ad_service.dart';
 
 /// Provider for diary list
 final diaryListProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
@@ -10,11 +11,164 @@ final diaryListProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>
   return apiService.getDiaries();
 });
 
-class DiaryListScreen extends ConsumerWidget {
+class DiaryListScreen extends ConsumerStatefulWidget {
   const DiaryListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DiaryListScreen> createState() => _DiaryListScreenState();
+}
+
+class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Preload rewarded ad for scan bonus
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(adServiceProvider).loadRewardedAd();
+    });
+  }
+
+  Future<void> _onScanButtonPressed(BuildContext context) async {
+    try {
+      // Check scan usage first
+      final apiService = ref.read(apiServiceProvider);
+      final usage = await apiService.getScanUsage();
+      
+      final count = usage['count'] as int? ?? 0;
+      final baseLimit = usage['limit'] as int? ?? 1;
+      final bonusCount = usage['bonusCount'] as int? ?? 0;
+      final maxBonus = usage['maxBonus'] as int? ?? 2;
+      final totalLimit = baseLimit + bonusCount;
+      
+      // Check if user has scans remaining
+      if (count < totalLimit) {
+        // Has scans remaining, go to camera
+        if (mounted) context.go('/diaries/camera');
+        return;
+      }
+      
+      // No scans remaining, check if can watch ad for bonus
+      if (bonusCount < maxBonus) {
+        // Can watch ad for bonus scan
+        final watchAd = await _showWatchAdDialog(maxBonus - bonusCount);
+        if (watchAd == true && mounted) {
+          await _watchAdAndScan();
+        }
+      } else {
+        // Max bonus reached
+        if (mounted) {
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Daily Scan Limit Reached'),
+              content: const Text(
+                'You\'ve used all your scans for today, including bonus scans.\n\n'
+                'Come back tomorrow for more free scans, or upgrade to Premium for unlimited scanning!',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking scan usage: $e');
+      // If error checking, still allow to go to camera (backend will check again)
+      if (mounted) context.go('/diaries/camera');
+    }
+  }
+
+  Future<bool?> _showWatchAdDialog(int remainingBonus) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Daily Scan Limit Reached'),
+        content: Text(
+          'You\'ve used your free scan for today.\n\n'
+          'Watch a short ad to get 1 bonus scan!\n'
+          '($remainingBonus bonus scans remaining today)',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Watch Ad'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _watchAdAndScan() async {
+    final adService = ref.read(adServiceProvider);
+    
+    // Show loading
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Loading ad...'), duration: Duration(seconds: 5)),
+      );
+    }
+
+    // Wait for ad to load if not ready
+    if (!adService.isRewardedAdReady) {
+      adService.loadRewardedAd();
+      for (int i = 0; i < 20; i++) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (adService.isRewardedAdReady) break;
+      }
+    }
+
+    if (!adService.isRewardedAdReady) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ad not available. Please try again in a moment.')),
+        );
+      }
+      adService.loadRewardedAd();
+      return;
+    }
+
+    // Show rewarded ad
+    final rewardEarned = await adService.showRewardedAd();
+
+    if (rewardEarned && mounted) {
+      try {
+        // Grant bonus scan
+        final apiService = ref.read(apiServiceProvider);
+        await apiService.grantBonusScan();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bonus scan granted!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Now go to camera
+        if (mounted) context.go('/diaries/camera');
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to grant bonus: $e')),
+          );
+        }
+      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please watch the complete ad to earn the bonus scan.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final diariesAsync = ref.watch(diaryListProvider);
 
     return Scaffold(
@@ -23,7 +177,7 @@ class DiaryListScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month),
-            onPressed: () => _showCalendar(context, ref),
+            onPressed: () => _showCalendar(context),
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -107,7 +261,7 @@ class DiaryListScreen extends ConsumerWidget {
           // Scan button
           FloatingActionButton.small(
             heroTag: 'scan',
-            onPressed: () => context.go('/diaries/camera'),
+            onPressed: () => _onScanButtonPressed(context),
             child: const Icon(Icons.camera_alt),
           ),
           const SizedBox(height: 8),
@@ -123,7 +277,7 @@ class DiaryListScreen extends ConsumerWidget {
     );
   }
 
-  void _showCalendar(BuildContext context, WidgetRef ref) async {
+  void _showCalendar(BuildContext context) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -133,7 +287,7 @@ class DiaryListScreen extends ConsumerWidget {
       helpText: 'Select a date to view diaries',
     );
 
-    if (picked != null && context.mounted) {
+    if (picked != null && mounted) {
       final dateStr = DateFormat('yyyy-MM-dd').format(picked);
       // Fetch diaries for that specific date
       try {
@@ -143,7 +297,7 @@ class DiaryListScreen extends ConsumerWidget {
           endDate: dateStr,
         );
         
-        if (context.mounted) {
+        if (mounted) {
           if (diaries.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('No diary entry for ${DateFormat('MMMM d, yyyy').format(picked)}')),
@@ -154,7 +308,7 @@ class DiaryListScreen extends ConsumerWidget {
           }
         }
       } catch (e) {
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error: $e')),
           );
