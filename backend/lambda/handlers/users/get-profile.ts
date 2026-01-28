@@ -34,6 +34,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       email: user.email,
       displayName: user.displayName || user.email.split('@')[0],
       plan: user.plan,
+      targetLanguage: user.targetLanguage || 'english',
+      nativeLanguage: user.nativeLanguage || 'japanese',
       createdAt: user.createdAt,
     });
   } catch (error) {

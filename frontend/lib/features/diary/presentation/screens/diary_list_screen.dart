@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/ad_service.dart';
+import '../../../../core/providers/locale_provider.dart';
 
 /// Provider for diary list
 final diaryListProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
@@ -29,6 +30,7 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
   }
 
   Future<void> _onScanButtonPressed(BuildContext context) async {
+    final s = ref.read(stringsProvider);
     try {
       // Check scan usage first
       final apiService = ref.read(apiServiceProvider);
@@ -60,15 +62,12 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
           await showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('Daily Scan Limit Reached'),
-              content: const Text(
-                'You\'ve used all your scans for today, including bonus scans.\n\n'
-                'Come back tomorrow for more free scans, or upgrade to Premium for unlimited scanning!',
-              ),
+              title: Text(s.dailyScanLimitReached),
+              content: Text(s.usedAllScansToday),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
+                  child: Text(s.ok),
                 ),
               ],
             ),
@@ -83,23 +82,20 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
   }
 
   Future<bool?> _showWatchAdDialog(int remainingBonus) {
+    final s = ref.read(stringsProvider);
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Daily Scan Limit Reached'),
-        content: Text(
-          'You\'ve used your free scan for today.\n\n'
-          'Watch a short ad to get 1 bonus scan!\n'
-          '($remainingBonus bonus scans remaining today)',
-        ),
+        title: Text(s.dailyScanLimitReached),
+        content: Text(s.usedFreeScanWatchAd(remainingBonus)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(s.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Watch Ad'),
+            child: Text(s.watchAd),
           ),
         ],
       ),
@@ -108,11 +104,12 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
 
   Future<void> _watchAdAndScan() async {
     final adService = ref.read(adServiceProvider);
+    final s = ref.read(stringsProvider);
     
     // Show loading
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Loading ad...'), duration: Duration(seconds: 5)),
+        SnackBar(content: Text(s.loadingAd), duration: const Duration(seconds: 5)),
       );
     }
 
@@ -128,7 +125,7 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
     if (!adService.isRewardedAdReady) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ad not available. Please try again in a moment.')),
+          SnackBar(content: Text(s.adNotAvailable)),
         );
       }
       adService.loadRewardedAd();
@@ -145,8 +142,8 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
         await apiService.grantBonusScan();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bonus scan granted!'),
+          SnackBar(
+            content: Text(s.bonusScanGranted),
             backgroundColor: Colors.green,
           ),
         );
@@ -161,8 +158,9 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
         }
       }
     } else if (mounted) {
+      final s = ref.read(stringsProvider);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please watch the complete ad to earn the bonus scan.')),
+        SnackBar(content: Text(s.pleaseWatchCompleteAd)),
       );
     }
   }
@@ -170,10 +168,11 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
   @override
   Widget build(BuildContext context) {
     final diariesAsync = ref.watch(diaryListProvider);
+    final s = ref.watch(stringsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Diaries'),
+        title: Text(s.myDiaries),
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month),
@@ -194,7 +193,7 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
               Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
               const SizedBox(height: 16),
               Text(
-                'Failed to load diaries',
+                s.failedToLoadDiaries,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
@@ -206,7 +205,7 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.invalidate(diaryListProvider),
-                child: const Text('Retry'),
+                child: Text(s.retry),
               ),
             ],
           ),
@@ -224,14 +223,14 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No diaries yet',
+                    s.noDiariesYet,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: Colors.grey[600],
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Start writing your first diary entry!',
+                    s.startWritingFirst,
                     style: TextStyle(color: Colors.grey[500]),
                   ),
                 ],
@@ -270,7 +269,7 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
             heroTag: 'manual',
             onPressed: () => context.go('/diaries/new'),
             icon: const Icon(Icons.edit),
-            label: const Text('Write'),
+            label: Text(s.write),
           ),
         ],
       ),
@@ -278,13 +277,14 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
   }
 
   void _showCalendar(BuildContext context) async {
+    final s = ref.read(stringsProvider);
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
       initialDate: now,
       firstDate: DateTime(2020),
       lastDate: now,
-      helpText: 'Select a date to view diaries',
+      helpText: s.selectDateToView,
     );
 
     if (picked != null && mounted) {
@@ -300,7 +300,7 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
         if (mounted) {
           if (diaries.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('No diary entry for ${DateFormat('MMMM d, yyyy').format(picked)}')),
+              SnackBar(content: Text(s.noDiaryForDate(DateFormat('MMMM d, yyyy').format(picked)))),
             );
           } else {
             // Navigate to the first diary of that date
@@ -318,13 +318,14 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
   }
 }
 
-class _DiaryCard extends StatelessWidget {
+class _DiaryCard extends ConsumerWidget {
   final Map<String, dynamic> diary;
 
   const _DiaryCard({required this.diary});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(stringsProvider);
     final date = diary['date'] as String? ?? '';
     final originalText = diary['originalText'] as String? ?? '';
     final hasCorrection = diary['correctedText'] != null;
@@ -353,58 +354,67 @@ class _DiaryCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  // Date
-                  Text(
-                    dateTime != null 
-                        ? DateFormat('MMMM d, yyyy').format(dateTime)
-                        : date,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  // Date - make it flexible to allow space for tags
+                  Flexible(
+                    child: Text(
+                      dateTime != null 
+                          ? DateFormat('MMMM d, yyyy').format(dateTime)
+                          : date,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Spacer(),
-                  // Input type indicator
-                  if (inputType == 'scan')
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.camera_alt, size: 14, color: Colors.blue[700]),
-                          const SizedBox(width: 4),
-                          Text(
-                            '手書き',
-                            style: TextStyle(fontSize: 12, color: Colors.blue[700]),
+                  const SizedBox(width: 8),
+                  // Tags row - wrap in a Row with constrained width
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Input type indicator
+                      if (inputType == 'scan')
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ],
-                      ),
-                    ),
-                  // Correction status
-                  if (hasCorrection) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.green[50],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.check_circle, size: 14, color: Colors.green[700]),
-                          const SizedBox(width: 4),
-                          Text(
-                            '添削済み',
-                            style: TextStyle(fontSize: 12, color: Colors.green[700]),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.camera_alt, size: 12, color: Colors.blue[700]),
+                              const SizedBox(width: 3),
+                              Text(
+                                s.handwritten,
+                                style: TextStyle(fontSize: 10, color: Colors.blue[700]),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ],
+                        ),
+                      // Correction status
+                      if (hasCorrection) ...[
+                        if (inputType == 'scan') const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green[50],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle, size: 12, color: Colors.green[700]),
+                              const SizedBox(width: 3),
+                              Text(
+                                s.corrected2,
+                                style: TextStyle(fontSize: 10, color: Colors.green[700]),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 12),

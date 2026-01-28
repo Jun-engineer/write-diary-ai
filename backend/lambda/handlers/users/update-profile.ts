@@ -2,12 +2,17 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { docClient, GetCommand, UpdateCommand } from '../../shared/dynamodb';
 import { success, badRequest, unauthorized, notFound, serverError } from '../../shared/response';
 import { getUserIdFromEvent, parseBody, now } from '../../shared/utils';
-import { User } from '../../shared/types';
+import { User, TargetLanguage, NativeLanguage } from '../../shared/types';
 
 const USERS_TABLE = process.env.USERS_TABLE!;
 
+const VALID_TARGET_LANGUAGES: TargetLanguage[] = ['english', 'spanish', 'chinese', 'japanese', 'korean', 'french', 'german', 'italian'];
+const VALID_NATIVE_LANGUAGES: NativeLanguage[] = ['english', 'japanese', 'spanish', 'chinese', 'korean', 'french', 'german', 'italian'];
+
 interface UpdateProfileRequest {
-  displayName: string;
+  displayName?: string;
+  targetLanguage?: TargetLanguage;
+  nativeLanguage?: NativeLanguage;
 }
 
 export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
@@ -22,14 +27,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     // Parse request body
     const body = parseBody<UpdateProfileRequest>(event);
-    if (!body || !body.displayName) {
-      return badRequest('displayName is required');
-    }
-
-    // Validate display name
-    const displayName = body.displayName.trim();
-    if (displayName.length < 2 || displayName.length > 50) {
-      return badRequest('Display name must be between 2 and 50 characters');
+    if (!body) {
+      return badRequest('Request body is required');
     }
 
     // Check if user exists
@@ -42,15 +41,52 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return notFound('User not found');
     }
 
+    // Build update expression dynamically
+    const updateExpressions: string[] = ['updatedAt = :updatedAt'];
+    const expressionValues: Record<string, any> = { ':updatedAt': now() };
+
+    // Validate and add displayName if provided
+    if (body.displayName !== undefined) {
+      const displayName = body.displayName.trim();
+      if (displayName.length < 2 || displayName.length > 50) {
+        return badRequest('Display name must be between 2 and 50 characters');
+      }
+      updateExpressions.push('displayName = :displayName');
+      expressionValues[':displayName'] = displayName;
+    }
+
+    // Validate and add targetLanguage if provided
+    if (body.targetLanguage !== undefined) {
+      if (!VALID_TARGET_LANGUAGES.includes(body.targetLanguage)) {
+        return badRequest(`Invalid target language. Valid options: ${VALID_TARGET_LANGUAGES.join(', ')}`);
+      }
+      updateExpressions.push('targetLanguage = :targetLanguage');
+      expressionValues[':targetLanguage'] = body.targetLanguage;
+    }
+
+    // Validate and add nativeLanguage if provided
+    if (body.nativeLanguage !== undefined) {
+      if (!VALID_NATIVE_LANGUAGES.includes(body.nativeLanguage)) {
+        return badRequest(`Invalid native language. Valid options: ${VALID_NATIVE_LANGUAGES.join(', ')}`);
+      }
+      updateExpressions.push('nativeLanguage = :nativeLanguage');
+      expressionValues[':nativeLanguage'] = body.nativeLanguage;
+      
+      // If targetLanguage is not explicitly set in DB, initialize it to avoid confusion
+      // This handles the case where existing users don't have targetLanguage set
+      const existingUser = result.Item as User;
+      if (!existingUser.targetLanguage && body.targetLanguage === undefined) {
+        updateExpressions.push('targetLanguage = :targetLanguage');
+        expressionValues[':targetLanguage'] = 'english';
+      }
+    }
+
     // Update user profile
     await docClient.send(new UpdateCommand({
       TableName: USERS_TABLE,
       Key: { userId },
-      UpdateExpression: 'SET displayName = :displayName, updatedAt = :updatedAt',
-      ExpressionAttributeValues: {
-        ':displayName': displayName,
-        ':updatedAt': now(),
-      },
+      UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+      ExpressionAttributeValues: expressionValues,
     }));
 
     // Get updated user
@@ -66,6 +102,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       email: user.email,
       displayName: user.displayName,
       plan: user.plan,
+      targetLanguage: user.targetLanguage || 'english',
+      nativeLanguage: user.nativeLanguage || 'japanese',
       createdAt: user.createdAt,
     });
   } catch (error) {

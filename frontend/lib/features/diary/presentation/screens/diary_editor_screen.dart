@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/providers/locale_provider.dart';
+import '../../../../core/providers/user_provider.dart';
 import 'diary_list_screen.dart';
 
 class DiaryEditorScreen extends ConsumerStatefulWidget {
@@ -51,9 +53,10 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
   }
 
   Future<void> _saveDiary() async {
+    final s = ref.read(stringsProvider);
     if (_textController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please write something first')),
+        SnackBar(content: Text(s.pleaseWriteSomething)),
       );
       return;
     }
@@ -73,8 +76,8 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
         ref.invalidate(diaryListProvider);
         
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Diary saved successfully!'),
+          SnackBar(
+            content: Text(s.diarySavedSuccess),
             backgroundColor: Colors.green,
           ),
         );
@@ -105,7 +108,13 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = ref.watch(stringsProvider);
     final isScanned = widget.inputType == 'scan' || widget.initialText != null;
+    
+    // Get target language name for hint text
+    final userAsync = ref.watch(userProvider);
+    final targetLanguage = userAsync.valueOrNull?['targetLanguage'] as String? ?? 'english';
+    final targetLanguageName = s.getLanguageName(targetLanguage);
     
     return Scaffold(
       appBar: AppBar(
@@ -113,7 +122,7 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
           icon: const Icon(Icons.close),
           onPressed: () => context.go('/diaries'),
         ),
-        title: Text(isScanned ? 'Scanned Diary' : 'New Diary'),
+        title: Text(isScanned ? s.scannedDiary : s.newDiary),
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _saveDiary,
@@ -123,7 +132,7 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : Text(s.save),
           ),
         ],
       ),
@@ -161,7 +170,7 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      'Scanned from handwriting - Please review and edit if needed',
+                      s.scannedFromHandwriting,
                       style: TextStyle(fontSize: 13, color: Colors.blue[700]),
                     ),
                   ),
@@ -178,8 +187,8 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration(
-                  hintText: 'Write about your day in English...',
+                decoration: InputDecoration(
+                  hintText: s.writeAboutYourDayIn(targetLanguageName),
                   border: InputBorder.none,
                 ),
                 style: Theme.of(context).textTheme.bodyLarge,
@@ -200,7 +209,7 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
                         ? 0
                         : value.text.trim().split(RegExp(r'\s+')).length;
                     return Text(
-                      '$wordCount words',
+                      s.words(wordCount),
                       style: TextStyle(color: Colors.grey[500]),
                     );
                   },

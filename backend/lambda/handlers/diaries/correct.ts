@@ -10,6 +10,8 @@ import {
   Correction, 
   CorrectionMode,
   User,
+  TargetLanguage,
+  NativeLanguage,
   PLAN_LIMITS,
 } from '../../shared/types';
 
@@ -23,35 +25,169 @@ const bedrockClient = new BedrockRuntimeClient({ region: 'us-east-1' });
 // Amazon Nova Lite model ID (available without approval)
 const MODEL_ID = 'amazon.nova-lite-v1:0';
 
-// AI correction prompts by mode (explanations in Japanese for Japanese users)
-const CORRECTION_PROMPTS: Record<CorrectionMode, string> = {
-  beginner: `あなたは初心者の生徒の英語日記を添削する親切な英語教師です。
-以下の点のみに注目してください：
-- 基本的な文法エラー（動詞の時制、主語と動詞の一致）
-- スペルミス
-- 冠詞の欠落（a, an, the）
-
-説明は日本語で、シンプルで励ましになるようにしてください。`,
-  
-  intermediate: `あなたは中級者の生徒の英語日記を改善する英語教師です。
-以下の点に注目してください：
-- すべての文法・スペルエラー
-- より自然に聞こえるべき不自然な表現
-- 語彙の改善提案
-- 前置詞の使い方
-
-説明は日本語で、なぜその修正が必要かを明確に説明してください。`,
-  
-  advanced: `あなたは上級者の生徒の英語日記を洗練させる英語教師です。
-以下を含む包括的な添削を行ってください：
-- 文法・スペル（微妙なエラーも含む）
-- 不自然な表現を自然な表現やイディオムに置き換え
-- より洗練された文章にするためのスタイル改善
-- より適切な語彙の提案
-- ネイティブスピーカーが特定の表現を好む理由の詳細な説明
-
-説明は日本語で行ってください。`,
+// Language display names for prompts
+const LANGUAGE_NAMES: Record<TargetLanguage, { english: string; native: string }> = {
+  english: { english: 'English', native: '英語' },
+  spanish: { english: 'Spanish', native: 'スペイン語' },
+  chinese: { english: 'Chinese', native: '中国語' },
+  japanese: { english: 'Japanese', native: '日本語' },
+  korean: { english: 'Korean', native: '韓国語' },
+  french: { english: 'French', native: 'フランス語' },
+  german: { english: 'German', native: 'ドイツ語' },
+  italian: { english: 'Italian', native: 'イタリア語' },
 };
+
+// Native language names for explanation instructions
+const NATIVE_LANGUAGE_INSTRUCTIONS: Record<NativeLanguage, string> = {
+  english: 'Provide explanations in English.',
+  japanese: '説明は日本語で行ってください。',
+  spanish: 'Proporcione explicaciones en español.',
+  chinese: '请用中文提供解释。',
+  korean: '설명은 한국어로 해주세요.',
+  french: 'Fournissez des explications en français.',
+  german: 'Erklärungen auf Deutsch.',
+  italian: 'Fornire spiegazioni in italiano.',
+};
+
+// Generate correction prompt based on mode, target language, and native language
+function generateCorrectionPrompt(
+  mode: CorrectionMode,
+  targetLanguage: TargetLanguage,
+  nativeLanguage: NativeLanguage
+): string {
+  const langName = LANGUAGE_NAMES[targetLanguage].english;
+  const nativeInstruction = NATIVE_LANGUAGE_INSTRUCTIONS[nativeLanguage];
+  
+  const prompts: Record<CorrectionMode, string> = {
+    beginner: `You are a kind ${langName} teacher correcting a beginner student's ${langName} diary.
+Focus only on:
+- Basic grammar errors (verb tense, subject-verb agreement)
+- Spelling mistakes
+- Missing articles or basic particles
+
+${nativeInstruction}
+Keep explanations simple and encouraging.`,
+    
+    intermediate: `You are a ${langName} teacher improving an intermediate student's ${langName} diary.
+Focus on:
+- All grammar and spelling errors
+- Unnatural expressions that should sound more natural
+- Vocabulary improvement suggestions
+- Preposition/particle usage
+
+${nativeInstruction}
+Explain clearly why each correction is needed.`,
+    
+    advanced: `You are a ${langName} teacher refining an advanced student's ${langName} diary.
+Provide comprehensive corrections including:
+- Grammar and spelling (including subtle errors)
+- Replace unnatural expressions with natural expressions or idioms
+- Style improvements for more sophisticated writing
+- Better vocabulary suggestions
+- Detailed explanations of why native speakers prefer certain expressions
+
+${nativeInstruction}`,
+  };
+  
+  return prompts[mode];
+}
+
+// Generate user prompt for correction
+function generateUserPrompt(
+  originalText: string,
+  targetLanguage: TargetLanguage,
+  nativeLanguage: NativeLanguage
+): string {
+  const langName = LANGUAGE_NAMES[targetLanguage].english;
+  
+  // Use native language for JSON field descriptions
+  const jsonDescriptions: Record<NativeLanguage, { correctedText: string; before: string; after: string; explanation: string; noCorrectionNeeded: string }> = {
+    english: {
+      correctedText: 'The complete corrected diary text',
+      before: 'Original phrase before correction',
+      after: 'Corrected phrase',
+      explanation: 'Brief explanation of why this correction is needed',
+      noCorrectionNeeded: 'If no corrections are needed, return:',
+    },
+    japanese: {
+      correctedText: '添削後の完全な日記テキスト',
+      before: '修正前の元のフレーズ',
+      after: '修正後のフレーズ',
+      explanation: 'この修正が必要な理由の簡潔な説明（日本語で）',
+      noCorrectionNeeded: '修正が不要な場合は以下を返してください:',
+    },
+    spanish: {
+      correctedText: 'El texto completo del diario corregido',
+      before: 'Frase original antes de la corrección',
+      after: 'Frase corregida',
+      explanation: 'Breve explicación de por qué se necesita esta corrección (en español)',
+      noCorrectionNeeded: 'Si no se necesitan correcciones, devuelva:',
+    },
+    chinese: {
+      correctedText: '校正后的完整日记文本',
+      before: '修正前的原始短语',
+      after: '修正后的短语',
+      explanation: '简要说明为什么需要此修正（用中文）',
+      noCorrectionNeeded: '如果不需要修正，请返回：',
+    },
+    korean: {
+      correctedText: '수정된 전체 일기 텍스트',
+      before: '수정 전 원래 문구',
+      after: '수정된 문구',
+      explanation: '이 수정이 필요한 이유에 대한 간략한 설명 (한국어로)',
+      noCorrectionNeeded: '수정이 필요 없는 경우 다음을 반환하세요:',
+    },
+    french: {
+      correctedText: 'Le texte complet du journal corrigé',
+      before: 'Phrase originale avant correction',
+      after: 'Phrase corrigée',
+      explanation: 'Brève explication de la raison de cette correction (en français)',
+      noCorrectionNeeded: 'Si aucune correction n\'est nécessaire, retournez:',
+    },
+    german: {
+      correctedText: 'Der vollständige korrigierte Tagebuchtext',
+      before: 'Ursprünglicher Satz vor der Korrektur',
+      after: 'Korrigierter Satz',
+      explanation: 'Kurze Erklärung, warum diese Korrektur erforderlich ist (auf Deutsch)',
+      noCorrectionNeeded: 'Wenn keine Korrekturen erforderlich sind, geben Sie zurück:',
+    },
+    italian: {
+      correctedText: 'Il testo completo del diario corretto',
+      before: 'Frase originale prima della correzione',
+      after: 'Frase corretta',
+      explanation: 'Breve spiegazione del perché è necessaria questa correzione (in italiano)',
+      noCorrectionNeeded: 'Se non sono necessarie correzioni, restituisci:',
+    },
+  };
+  
+  const desc = jsonDescriptions[nativeLanguage];
+  
+  return `Correct the following ${langName} diary and list all corrections.
+
+IMPORTANT: Reply ONLY with JSON in this format. Do not include any other text:
+{
+  "correctedText": "${desc.correctedText}",
+  "corrections": [
+    {
+      "type": "grammar|spelling|style|vocabulary",
+      "before": "${desc.before}",
+      "after": "${desc.after}",
+      "explanation": "${desc.explanation}"
+    }
+  ]
+}
+
+${desc.noCorrectionNeeded}
+{
+  "correctedText": "original text unchanged",
+  "corrections": []
+}
+
+Diary to correct:
+"""
+${originalText}
+"""`;
+}
 
 export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   console.log('CorrectDiary event:', JSON.stringify(event));
@@ -136,8 +272,15 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return notFound('Diary not found');
     }
 
-    // Call AI for correction
-    const { correctedText, corrections } = await correctWithClaude(diary.originalText, mode);
+    // Call AI for correction with user's language preferences
+    const targetLanguage = user?.targetLanguage || 'english';
+    const nativeLanguage = user?.nativeLanguage || 'japanese';
+    const { correctedText, corrections } = await correctWithAI(
+      diary.originalText, 
+      mode, 
+      targetLanguage, 
+      nativeLanguage
+    );
 
     // Update diary with corrections
     await docClient.send(new UpdateCommand({
@@ -185,87 +328,104 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
 /**
  * Call Amazon Nova via AWS Bedrock for text correction
+ * Supports multiple target languages and native languages for explanations
+ * Includes retry logic for transient failures
  */
-async function correctWithClaude(
+async function correctWithAI(
   originalText: string, 
-  mode: CorrectionMode
+  mode: CorrectionMode,
+  targetLanguage: TargetLanguage,
+  nativeLanguage: NativeLanguage
 ): Promise<{ correctedText: string; corrections: Correction[] }> {
-  const systemPrompt = CORRECTION_PROMPTS[mode];
-  
-  const userPrompt = `以下の英語日記を添削し、すべての修正点をリストアップしてください。
+  const systemPrompt = generateCorrectionPrompt(mode, targetLanguage, nativeLanguage);
+  const userPrompt = generateUserPrompt(originalText, targetLanguage, nativeLanguage);
 
-重要: 以下の形式のJSONのみで回答してください。他のテキストは含めないでください:
-{
-  "correctedText": "添削後の完全な日記テキスト",
-  "corrections": [
-    {
-      "type": "grammar|spelling|style|vocabulary",
-      "before": "修正前の元のフレーズ（英語）",
-      "after": "修正後のフレーズ（英語）",
-      "explanation": "この修正が必要な理由の簡潔な説明（日本語で）"
-    }
-  ]
-}
+  const maxRetries = 3;
+  let lastError: any = null;
 
-修正が不要な場合は以下を返してください:
-{
-  "correctedText": "元のテキストをそのまま",
-  "corrections": []
-}
-
-添削する日記:
-"""
-${originalText}
-"""`;
-
-  try {
-    const response = await bedrockClient.send(new InvokeModelCommand({
-      modelId: MODEL_ID,
-      contentType: 'application/json',
-      accept: 'application/json',
-      body: JSON.stringify({
-        schemaVersion: 'messages-v1',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { text: systemPrompt + '\n\n' + userPrompt }
-            ],
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`AI correction attempt ${attempt}/${maxRetries}`);
+      
+      const response = await bedrockClient.send(new InvokeModelCommand({
+        modelId: MODEL_ID,
+        contentType: 'application/json',
+        accept: 'application/json',
+        body: JSON.stringify({
+          schemaVersion: 'messages-v1',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { text: systemPrompt + '\n\n' + userPrompt }
+              ],
+            },
+          ],
+          inferenceConfig: {
+            maxTokens: 4096,
+            temperature: 0.3, // Lower temperature for more consistent output
           },
-        ],
-        inferenceConfig: {
-          maxTokens: 4096,
-        },
-      }),
-    }));
+        }),
+      }));
 
-    // Parse the response (Nova format)
-    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-    const aiContent = responseBody.output.message.content[0].text;
-    
-    console.log('Nova response:', aiContent);
+      // Parse the response (Nova format)
+      const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+      const aiContent = responseBody.output?.message?.content?.[0]?.text;
+      
+      if (!aiContent) {
+        console.error('Empty AI response content');
+        throw new Error('Empty AI response');
+      }
+      
+      console.log('Nova response:', aiContent);
 
-    // Parse the JSON response from Claude
-    const parsed = JSON.parse(aiContent);
-    
-    // Validate and return the corrections
-    return {
-      correctedText: parsed.correctedText || originalText,
-      corrections: (parsed.corrections || []).map((c: any) => ({
-        type: c.type || 'grammar',
-        before: c.before || '',
-        after: c.after || '',
-        explanation: c.explanation || '',
-      })),
-    };
-  } catch (error) {
-    console.error('Error calling Claude:', error);
-    
-    // If AI fails, return original text with no corrections
-    // This allows the app to gracefully degrade
-    return {
-      correctedText: originalText,
-      corrections: [],
-    };
+      // Try to extract JSON from the response (AI might include extra text)
+      let jsonStr = aiContent;
+      
+      // Try to find JSON object in the response
+      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[0];
+      }
+
+      // Parse the JSON response
+      const parsed = JSON.parse(jsonStr);
+      
+      // Validate required fields
+      if (typeof parsed.correctedText !== 'string') {
+        console.error('Invalid correctedText in response:', parsed);
+        throw new Error('Invalid correctedText in AI response');
+      }
+      
+      // Validate and return the corrections
+      return {
+        correctedText: parsed.correctedText,
+        corrections: Array.isArray(parsed.corrections) 
+          ? parsed.corrections.map((c: any) => ({
+              type: ['grammar', 'spelling', 'style', 'vocabulary'].includes(c.type) ? c.type : 'grammar',
+              before: String(c.before || ''),
+              after: String(c.after || ''),
+              explanation: String(c.explanation || ''),
+            }))
+          : [],
+      };
+    } catch (error: any) {
+      lastError = error;
+      console.error(`AI correction attempt ${attempt} failed:`, error.message || error);
+      
+      // If it's a rate limit or throttling error, wait before retry
+      if (error.name === 'ThrottlingException' || error.name === 'ServiceUnavailableException') {
+        const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+        console.log(`Waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      } else if (attempt < maxRetries) {
+        // Brief pause before retry for other errors
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
   }
+
+  // All retries failed - throw error instead of silently returning original text
+  console.error('All AI correction attempts failed. Last error:', lastError);
+  throw new Error(`AI correction failed after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
 }

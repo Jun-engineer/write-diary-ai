@@ -23,12 +23,14 @@ export const handler: PostConfirmationTriggerHandler = async (event: PostConfirm
     // Get display name from Cognito 'name' attribute, or use email prefix as fallback
     const displayName = event.request.userAttributes.name || email.split('@')[0];
 
-    // Create user record
+    // Create user record with default language settings
     const user: User = {
       userId,
       email,
       displayName,
       plan: 'free', // All new users start on free plan
+      targetLanguage: 'english', // Default: learning English
+      nativeLanguage: 'japanese', // Default: native Japanese
       createdAt: now(),
     };
 

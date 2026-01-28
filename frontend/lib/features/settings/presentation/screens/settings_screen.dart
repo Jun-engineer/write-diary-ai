@@ -5,8 +5,15 @@ import '../../../../core/services/api_service.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/providers/locale_provider.dart';
 import '../../../../core/providers/correction_mode_provider.dart';
+import '../../../../core/providers/user_provider.dart';
 import 'terms_of_service_screen.dart';
 import 'privacy_policy_screen.dart';
+
+/// Available target languages (languages to learn)
+const targetLanguages = ['english', 'spanish', 'chinese', 'japanese', 'korean', 'french', 'german', 'italian'];
+
+/// Available native languages (for explanations)
+const nativeLanguages = ['japanese', 'english', 'spanish', 'chinese', 'korean', 'french', 'german', 'italian'];
 
 /// Provider for scan usage data
 final scanUsageProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
@@ -85,35 +92,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showLanguageDialog(BuildContext context, WidgetRef ref, AppLocale currentLocale, AppStrings s) {
-    showDialog(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: Text(s.selectLanguage),
-        children: [
-          RadioListTile<AppLocale>(
-            title: const Text('日本語'),
-            value: AppLocale.japanese,
-            groupValue: currentLocale,
-            onChanged: (value) {
-              ref.read(localeProvider.notifier).setLocale(value!);
-              Navigator.pop(context);
-            },
-          ),
-          RadioListTile<AppLocale>(
-            title: const Text('English'),
-            value: AppLocale.english,
-            groupValue: currentLocale,
-            onChanged: (value) {
-              ref.read(localeProvider.notifier).setLocale(value!);
-              Navigator.pop(context);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showCorrectionModeDialog(BuildContext context, WidgetRef ref, CorrectionMode currentMode, AppStrings s) {
     final isJapanese = ref.read(localeProvider) == AppLocale.japanese;
     showDialog(
@@ -133,6 +111,89 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         }).toList(),
       ),
     );
+  }
+
+  void _showTargetLanguageDialog(BuildContext context, WidgetRef ref, String currentTarget, AppStrings s) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(s.selectTargetLanguage),
+        children: targetLanguages.map((lang) {
+          return RadioListTile<String>(
+            title: Text(s.getLanguageName(lang)),
+            value: lang,
+            groupValue: currentTarget,
+            onChanged: (value) async {
+              Navigator.pop(context);
+              if (value != null && value != currentTarget) {
+                await _updateLanguageSetting(ref, s, targetLanguage: value);
+              }
+            },
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  void _showNativeLanguageDialog(BuildContext context, WidgetRef ref, String currentNative, AppStrings s) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(s.selectNativeLanguage),
+        children: nativeLanguages.map((lang) {
+          return RadioListTile<String>(
+            title: Text(s.getLanguageName(lang)),
+            value: lang,
+            groupValue: currentNative,
+            onChanged: (value) async {
+              Navigator.pop(context);
+              if (value != null && value != currentNative) {
+                await _updateLanguageSetting(ref, s, nativeLanguage: value);
+              }
+            },
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Future<void> _updateLanguageSetting(WidgetRef ref, AppStrings s, {String? targetLanguage, String? nativeLanguage}) async {
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      await apiService.updateUserProfile(
+        targetLanguage: targetLanguage,
+        nativeLanguage: nativeLanguage,
+      );
+      
+      ref.invalidate(userProfileProvider);
+      ref.invalidate(userProvider);
+
+      // When native language changes, also update the app UI locale
+      if (nativeLanguage != null) {
+        final newLocale = AppLocale.fromCode(nativeLanguage);
+        await ref.read(localeProvider.notifier).setLocale(newLocale);
+      }
+
+      if (mounted) {
+        // Get updated strings after locale change
+        final updatedS = ref.read(stringsProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(updatedS.languageSettingsUpdated),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${s.updateFailed}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _editDisplayName(String currentName, AppStrings s) async {
@@ -374,6 +435,75 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const Divider(),
 
+          // Learning Language Settings
+          _buildSection(
+            context,
+            title: s.learningLanguageSettings,
+            children: [
+              userProfileAsync.when(
+                loading: () => ListTile(
+                  leading: const Icon(Icons.school),
+                  title: Text(s.targetLanguage),
+                  trailing: const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+                error: (_, __) => ListTile(
+                  leading: const Icon(Icons.school),
+                  title: Text(s.targetLanguage),
+                  subtitle: Text(s.loadingError),
+                ),
+                data: (profile) {
+                  final targetLang = profile['targetLanguage'] as String? ?? 'english';
+                  return ListTile(
+                    leading: const Icon(Icons.school),
+                    title: Text(s.targetLanguage),
+                    subtitle: Text(s.getLanguageName(targetLang)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _showTargetLanguageDialog(context, ref, targetLang, s),
+                  );
+                },
+              ),
+              userProfileAsync.when(
+                loading: () => ListTile(
+                  leading: const Icon(Icons.translate),
+                  title: Text(s.nativeLanguage),
+                  trailing: const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+                error: (_, __) => ListTile(
+                  leading: const Icon(Icons.translate),
+                  title: Text(s.nativeLanguage),
+                  subtitle: Text(s.loadingError),
+                ),
+                data: (profile) {
+                  final nativeLang = profile['nativeLanguage'] as String? ?? 'japanese';
+                  return ListTile(
+                    leading: const Icon(Icons.translate),
+                    title: Text(s.nativeLanguage),
+                    subtitle: Text(s.getLanguageName(nativeLang)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _showNativeLanguageDialog(context, ref, nativeLang, s),
+                  );
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  '${s.targetLanguageDesc}\n${s.nativeLanguageDesc}',
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+              ),
+            ],
+          ),
+
+          const Divider(),
+
           // Usage Section
           _buildSection(
             context,
@@ -495,18 +625,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     subtitle: Text(_getThemeModeText(themeMode, s)),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => _showThemeModeDialog(context, ref, themeMode, s),
-                  );
-                },
-              ),
-              Consumer(
-                builder: (context, ref, _) {
-                  final currentLocale = ref.watch(localeProvider);
-                  return ListTile(
-                    leading: const Icon(Icons.language),
-                    title: Text(s.language),
-                    subtitle: Text(currentLocale.displayName),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _showLanguageDialog(context, ref, currentLocale, s),
                   );
                 },
               ),

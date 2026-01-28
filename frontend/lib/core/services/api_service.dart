@@ -189,11 +189,16 @@ class ApiService {
 
   /// Update user profile
   Future<Map<String, dynamic>> updateUserProfile({
-    required String displayName,
+    String? displayName,
+    String? targetLanguage,
+    String? nativeLanguage,
   }) async {
-    final response = await _dio.put('/users/me', data: {
-      'displayName': displayName,
-    });
+    final data = <String, dynamic>{};
+    if (displayName != null) data['displayName'] = displayName;
+    if (targetLanguage != null) data['targetLanguage'] = targetLanguage;
+    if (nativeLanguage != null) data['nativeLanguage'] = nativeLanguage;
+
+    final response = await _dio.put('/users/me', data: data);
     return response.data;
   }
 

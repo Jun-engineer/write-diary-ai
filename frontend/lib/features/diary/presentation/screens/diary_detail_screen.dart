@@ -9,8 +9,8 @@ import '../../../../core/providers/correction_mode_provider.dart';
 import '../../../../core/providers/user_provider.dart';
 import 'diary_list_screen.dart';
 
-/// Provider for a single diary - using StateProvider to allow manual updates
-final diaryDetailProvider = StateNotifierProvider.autoDispose
+/// Provider for a single diary - NOT using autoDispose to prevent disposal during ads
+final diaryDetailProvider = StateNotifierProvider
     .family<DiaryDetailNotifier, AsyncValue<Map<String, dynamic>>, String>(
   (ref, diaryId) => DiaryDetailNotifier(ref, diaryId),
 );
@@ -60,6 +60,9 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
   Set<int> _selectedCorrections = {};
   bool _isSelectMode = false;
   bool _initialized = false;
+  
+  // Local cache for correction result - survives ad display
+  Map<String, dynamic>? _pendingCorrectionResult;
 
   @override
   void didChangeDependencies() {
@@ -244,27 +247,17 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
       debugPrint('correctedText: ${result['correctedText']}');
       debugPrint('corrections: ${result['corrections']}');
 
-      // Store the result locally in case we need it after ad
-      final correctedText = result['correctedText'];
-      final corrections = result['corrections'];
+      // Store result in local state - this survives ad display
+      _pendingCorrectionResult = {
+        'correctedText': result['correctedText'],
+        'corrections': result['corrections'],
+      };
 
-      // Update the UI state FIRST, before showing any ads
+      // Apply correction to provider immediately
+      _applyCorrectionResult();
+
+      // Show success message
       if (mounted) {
-        final notifier = ref.read(diaryDetailProvider(widget.diaryId).notifier);
-        final currentState = ref.read(diaryDetailProvider(widget.diaryId));
-        
-        if (currentState.hasValue) {
-          final updatedDiary = Map<String, dynamic>.from(currentState.value!);
-          updatedDiary['correctedText'] = correctedText;
-          updatedDiary['corrections'] = corrections;
-          debugPrint('Updated diary: $updatedDiary');
-          notifier.updateDiary(updatedDiary);
-        }
-
-        // Also refresh the list
-        ref.invalidate(diaryListProvider);
-
-        // Show success message BEFORE the ad
         final s = ref.read(stringsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -274,7 +267,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
         );
       }
 
-      // Stop the loading indicator BEFORE showing the ad so user sees the result
+      // Stop the loading indicator so user sees the result
       if (mounted) {
         setState(() => _isCorrecting = false);
       }
@@ -288,19 +281,19 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
         await adService.showInterstitialAd();
         // Preload next ad
         adService.loadInterstitialAd();
-      }
-
-      // CRITICAL: After ad closes, the autoDispose provider might have been
-      // disposed and recreated. Force refresh to ensure corrected data shows.
-      if (mounted) {
-        // Give UI a moment to settle after ad closes
-        await Future.delayed(const Duration(milliseconds: 300));
         
-        // Refresh from server - the corrected data is already saved there
-        final notifier = ref.read(diaryDetailProvider(widget.diaryId).notifier);
-        await notifier.refresh();
-        debugPrint('Refreshed diary after ad closed');
+        // After ad closes, re-apply the correction result in case provider was reset
+        if (mounted && _pendingCorrectionResult != null) {
+          _applyCorrectionResult();
+        }
       }
+      
+      // Clear the pending result
+      _pendingCorrectionResult = null;
+      
+      // Refresh the list
+      ref.invalidate(diaryListProvider);
+      
     } catch (e) {
       if (mounted) {
         final s = ref.read(stringsProvider);
@@ -319,10 +312,25 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
         );
       }
       
-      // Only set _isCorrecting = false here if we haven't already (in case of error)
       if (mounted && _isCorrecting) {
         setState(() => _isCorrecting = false);
       }
+    }
+  }
+  
+  /// Apply cached correction result to the provider
+  void _applyCorrectionResult() {
+    if (_pendingCorrectionResult == null || !mounted) return;
+    
+    final notifier = ref.read(diaryDetailProvider(widget.diaryId).notifier);
+    final currentState = ref.read(diaryDetailProvider(widget.diaryId));
+    
+    if (currentState.hasValue) {
+      final updatedDiary = Map<String, dynamic>.from(currentState.value!);
+      updatedDiary['correctedText'] = _pendingCorrectionResult!['correctedText'];
+      updatedDiary['corrections'] = _pendingCorrectionResult!['corrections'];
+      debugPrint('Applied correction result to diary');
+      notifier.updateDiary(updatedDiary);
     }
   }
 

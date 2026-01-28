@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/providers/locale_provider.dart';
 
 /// Provider for review cards list
 final reviewCardsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
@@ -17,20 +18,21 @@ class ReviewListScreen extends ConsumerStatefulWidget {
 
 class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
   Future<void> _deleteCard(String cardId) async {
+    final s = ref.read(stringsProvider);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Card'),
-        content: const Text('Are you sure you want to delete this review card?'),
+        title: Text(s.deleteCard),
+        content: Text(s.deleteCardConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(s.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text(s.delete),
           ),
         ],
       ),
@@ -46,8 +48,8 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Card deleted'),
+          SnackBar(
+            content: Text(s.cardDeleted),
             backgroundColor: Colors.green,
           ),
         );
@@ -67,10 +69,11 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
   @override
   Widget build(BuildContext context) {
     final cardsAsync = ref.watch(reviewCardsProvider);
+    final s = ref.watch(stringsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Review Cards'),
+        title: Text(s.reviewCards),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -86,13 +89,13 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
             children: [
               Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
               const SizedBox(height: 16),
-              Text('Failed to load cards', style: Theme.of(context).textTheme.titleLarge),
+              Text(s.failedToLoadCards, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               Text(error.toString(), style: TextStyle(color: Colors.grey[600])),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.invalidate(reviewCardsProvider),
-                child: const Text('Retry'),
+                child: Text(s.retry),
               ),
             ],
           ),
@@ -110,14 +113,14 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '復習カードがまだありません',
+                    s.noReviewCardsYet,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: Colors.grey[600],
                         ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '日記の添削からカードを作成しましょう！',
+                    s.createCardsFromCorrections,
                     style: TextStyle(color: Colors.grey[500]),
                   ),
                 ],
@@ -147,7 +150,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
   }
 }
 
-class _ReviewCardItem extends StatefulWidget {
+class _ReviewCardItem extends ConsumerStatefulWidget {
   final Map<String, dynamic> card;
   final VoidCallback onDelete;
 
@@ -157,14 +160,15 @@ class _ReviewCardItem extends StatefulWidget {
   });
 
   @override
-  State<_ReviewCardItem> createState() => _ReviewCardItemState();
+  ConsumerState<_ReviewCardItem> createState() => _ReviewCardItemState();
 }
 
-class _ReviewCardItemState extends State<_ReviewCardItem> {
+class _ReviewCardItemState extends ConsumerState<_ReviewCardItem> {
   bool _isFlipped = false;
 
   @override
   Widget build(BuildContext context) {
+    final s = ref.watch(stringsProvider);
     final before = widget.card['before'] as String? ?? '';
     final after = widget.card['after'] as String? ?? '';
     final context_ = widget.card['context'] as String? ?? '';
@@ -195,9 +199,16 @@ class _ReviewCardItemState extends State<_ReviewCardItem> {
                     child: Wrap(
                       spacing: 8,
                       children: tags.map((tag) {
+                        // Localize the tag
+                        String localizedTag = tag;
+                        if (tag == 'grammar') localizedTag = s.grammar;
+                        else if (tag == 'style') localizedTag = s.style;
+                        else if (tag == 'vocabulary') localizedTag = s.vocabulary;
+                        else if (tag == 'spelling') localizedTag = s.spelling;
+                        
                         return Chip(
                           label: Text(
-                            tag,
+                            localizedTag,
                             style: const TextStyle(fontSize: 11),
                           ),
                           padding: EdgeInsets.zero,
@@ -211,7 +222,7 @@ class _ReviewCardItemState extends State<_ReviewCardItem> {
                     icon: const Icon(Icons.delete_outline, size: 20),
                     onPressed: widget.onDelete,
                     color: Colors.grey[600],
-                    tooltip: 'Delete card',
+                    tooltip: s.deleteCard,
                   ),
                 ],
               ),
@@ -223,7 +234,7 @@ class _ReviewCardItemState extends State<_ReviewCardItem> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'What\'s wrong with this?',
+                      s.whatsWrongWithThis,
                       style: TextStyle(
                         color: Colors.grey[500],
                         fontSize: 12,
@@ -238,7 +249,7 @@ class _ReviewCardItemState extends State<_ReviewCardItem> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'タップして答えを見る',
+                      s.tapToSeeAnswer,
                       style: TextStyle(
                         color: Colors.grey[400],
                         fontSize: 12,
@@ -255,7 +266,7 @@ class _ReviewCardItemState extends State<_ReviewCardItem> {
                         Icon(Icons.check_circle, color: Colors.green[600], size: 18),
                         const SizedBox(width: 4),
                         Text(
-                          '正しい表現:',
+                          s.correctExpression,
                           style: TextStyle(
                             color: Colors.grey[500],
                             fontSize: 12,
@@ -280,7 +291,7 @@ class _ReviewCardItemState extends State<_ReviewCardItem> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          '文脈: $context_',
+                          s.contextLabel(context_),
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 12,
@@ -291,7 +302,7 @@ class _ReviewCardItemState extends State<_ReviewCardItem> {
                     ],
                     const SizedBox(height: 8),
                     Text(
-                      'Tap to hide',
+                      s.tapToHide,
                       style: TextStyle(
                         color: Colors.grey[400],
                         fontSize: 12,

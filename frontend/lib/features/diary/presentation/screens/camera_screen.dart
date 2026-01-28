@@ -8,6 +8,7 @@ import 'dart:io';
 import 'dart:convert';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/ad_service.dart';
+import '../../../../core/providers/locale_provider.dart';
 
 class CameraScreen extends ConsumerStatefulWidget {
   const CameraScreen({super.key});
@@ -187,6 +188,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
 
   Future<void> _handleScanLimitError(dynamic responseData) async {
     if (!mounted) return;
+    final s = ref.read(stringsProvider);
 
     Map<String, dynamic>? errorData;
     try {
@@ -220,20 +222,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       final watchAd = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Daily Scan Limit Reached'),
-          content: Text(
-            'You\'ve used your free scan for today.\n\n'
-            'Watch a short ad to get 1 bonus scan!\n'
-            '(${maxBonus - bonusCount} bonus scans remaining today)',
-          ),
+          title: Text(s.dailyScanLimitReached),
+          content: Text(s.usedFreeScanWatchAd(maxBonus - bonusCount)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(s.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Watch Ad'),
+              child: Text(s.watchAd),
             ),
           ],
         ),
@@ -247,15 +245,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       await showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Daily Scan Limit Reached'),
-          content: const Text(
-            'You\'ve used all your scans for today, including bonus scans.\n\n'
-            'Come back tomorrow for more free scans, or upgrade to Premium for unlimited scanning!',
-          ),
+          title: Text(s.dailyScanLimitReached),
+          content: Text(s.usedAllScansToday),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
+              child: Text(s.ok),
             ),
           ],
         ),
@@ -265,11 +260,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
 
   Future<void> _watchAdForBonusScan() async {
     final adService = ref.read(adServiceProvider);
+    final s = ref.read(stringsProvider);
     
     // Show loading indicator
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Loading ad...'), duration: Duration(seconds: 5)),
+        SnackBar(content: Text(s.loadingAd), duration: const Duration(seconds: 5)),
       );
     }
 
@@ -288,9 +284,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
     if (!adService.isRewardedAdReady) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ad not available right now. Please try again in a moment.'),
-          ),
+          SnackBar(content: Text(s.adNotAvailable)),
         );
       }
       // Reload for next attempt
@@ -308,8 +302,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
         await apiService.grantBonusScan();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bonus scan granted! Retrying...'),
+          SnackBar(
+            content: Text(s.bonusScanGrantedRetrying),
             backgroundColor: Colors.green,
           ),
         );
@@ -323,9 +317,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       }
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please watch the complete ad to earn the bonus scan.'),
-        ),
+        SnackBar(content: Text(s.pleaseWatchCompleteAd)),
       );
     }
   }
@@ -340,6 +332,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = ref.watch(stringsProvider);
+    
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -348,9 +342,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
           icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => context.go('/diaries'),
         ),
-        title: const Text(
-          'Scan Handwriting',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          s.scanHandwriting,
+          style: const TextStyle(color: Colors.white),
         ),
       ),
       body: Column(
@@ -412,9 +406,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
               children: [
                 Icon(Icons.lightbulb_outline, color: Colors.yellow[600], size: 20),
                 const SizedBox(width: 8),
-                Text(
-                  'Ensure good lighting for best results',
-                  style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                Flexible(
+                  child: Text(
+                    s.ensureGoodLighting,
+                    style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                  ),
                 ),
               ],
             ),

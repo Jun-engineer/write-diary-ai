@@ -1,9 +1,15 @@
+// Supported languages for learning
+export type TargetLanguage = 'english' | 'spanish' | 'chinese' | 'japanese' | 'korean' | 'french' | 'german' | 'italian';
+export type NativeLanguage = 'english' | 'japanese' | 'spanish' | 'chinese' | 'korean' | 'french' | 'german' | 'italian';
+
 // User types
 export interface User {
   userId: string;
   email: string;
   displayName?: string;
   plan: 'free' | 'premium';
+  targetLanguage?: TargetLanguage; // Language user is learning (default: english)
+  nativeLanguage?: NativeLanguage; // User's native language for explanations (default: japanese)
   createdAt: number;
   updatedAt?: number;
 }
