@@ -1,19 +1,14 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 
-/// Ad configuration
+/// Ad configuration (iOS only)
 class AdConfig {
   // Use test ads in debug mode, real ads in release
   static bool get useTestAds => kDebugMode;
-  
-  // Android Ad Unit IDs
-  static const String _androidInterstitialReal = 'ca-app-pub-5434162081070782/9586144076';
-  static const String _androidRewardedReal = 'ca-app-pub-5434162081070782/6959980732';
-  static const String _androidInterstitialTest = 'ca-app-pub-3940256099942544/1033173712';
-  static const String _androidRewardedTest = 'ca-app-pub-3940256099942544/5224354917';
   
   // iOS Ad Unit IDs
   static const String _iosInterstitialReal = 'ca-app-pub-5434162081070782/4213547836';
@@ -22,21 +17,11 @@ class AdConfig {
   static const String _iosRewardedTest = 'ca-app-pub-3940256099942544/1712485313';
   
   static String get interstitialAdUnitId {
-    if (Platform.isAndroid) {
-      return useTestAds ? _androidInterstitialTest : _androidInterstitialReal;
-    } else if (Platform.isIOS) {
-      return useTestAds ? _iosInterstitialTest : _iosInterstitialReal;
-    }
-    throw UnsupportedError('Unsupported platform');
+    return useTestAds ? _iosInterstitialTest : _iosInterstitialReal;
   }
   
   static String get rewardedAdUnitId {
-    if (Platform.isAndroid) {
-      return useTestAds ? _androidRewardedTest : _androidRewardedReal;
-    } else if (Platform.isIOS) {
-      return useTestAds ? _iosRewardedTest : _iosRewardedReal;
-    }
-    throw UnsupportedError('Unsupported platform');
+    return useTestAds ? _iosRewardedTest : _iosRewardedReal;
   }
 }
 
@@ -52,8 +37,16 @@ class AdService {
   
   /// Initialize the Mobile Ads SDK
   static Future<void> initialize() async {
+    // Request ATT permission on iOS before initializing ads
+    if (Platform.isIOS) {
+      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+      if (status == TrackingStatus.notDetermined) {
+        // Wait briefly to ensure app is fully launched before showing ATT dialog
+        await Future.delayed(const Duration(milliseconds: 500));
+        await AppTrackingTransparency.requestTrackingAuthorization();
+      }
+    }
     await MobileAds.instance.initialize();
-    debugPrint('AdMob SDK initialized');
   }
   
   /// Load an interstitial ad
@@ -65,10 +58,10 @@ class AdService {
         onAdLoaded: (ad) {
           _interstitialAd = ad;
           _isInterstitialAdReady = true;
-          debugPrint('Interstitial ad loaded');
+          if (kDebugMode) debugPrint('Interstitial ad loaded');
         },
         onAdFailedToLoad: (error) {
-          debugPrint('Interstitial ad failed to load: $error');
+          if (kDebugMode) debugPrint('Interstitial ad failed to load: $error');
           _isInterstitialAdReady = false;
         },
       ),
@@ -84,10 +77,10 @@ class AdService {
         onAdLoaded: (ad) {
           _rewardedAd = ad;
           _isRewardedAdReady = true;
-          debugPrint('Rewarded ad loaded');
+          if (kDebugMode) debugPrint('Rewarded ad loaded');
         },
         onAdFailedToLoad: (error) {
-          debugPrint('Rewarded ad failed to load: $error');
+          if (kDebugMode) debugPrint('Rewarded ad failed to load: $error');
           _isRewardedAdReady = false;
         },
       ),
@@ -98,7 +91,7 @@ class AdService {
   /// Returns true if ad was shown, false if not available
   Future<bool> showInterstitialAd() async {
     if (!_isInterstitialAdReady || _interstitialAd == null) {
-      debugPrint('Interstitial ad not ready');
+      if (kDebugMode) debugPrint('Interstitial ad not ready');
       return false;
     }
     
@@ -107,13 +100,13 @@ class AdService {
     
     _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
-        debugPrint('Interstitial ad dismissed');
+        if (kDebugMode) debugPrint('Interstitial ad dismissed');
         ad.dispose();
         _isInterstitialAdReady = false;
         if (!completer.isCompleted) completer.complete();
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
-        debugPrint('Interstitial ad failed to show: $error');
+        if (kDebugMode) debugPrint('Interstitial ad failed to show: $error');
         ad.dispose();
         _isInterstitialAdReady = false;
         if (!completer.isCompleted) completer.complete();
@@ -131,7 +124,7 @@ class AdService {
   /// Returns true if user earned reward, false otherwise
   Future<bool> showRewardedAd() async {
     if (!_isRewardedAdReady || _rewardedAd == null) {
-      debugPrint('Rewarded ad not ready');
+      if (kDebugMode) debugPrint('Rewarded ad not ready');
       return false;
     }
     
@@ -140,7 +133,7 @@ class AdService {
     
     _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
-        debugPrint('Rewarded ad dismissed, rewardEarned: $rewardEarned');
+        if (kDebugMode) debugPrint('Rewarded ad dismissed, rewardEarned: $rewardEarned');
         ad.dispose();
         _isRewardedAdReady = false;
         // Preload the next ad
@@ -148,7 +141,7 @@ class AdService {
         if (!completer.isCompleted) completer.complete();
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
-        debugPrint('Rewarded ad failed to show: $error');
+        if (kDebugMode) debugPrint('Rewarded ad failed to show: $error');
         ad.dispose();
         _isRewardedAdReady = false;
         loadRewardedAd();
@@ -158,7 +151,7 @@ class AdService {
     
     await _rewardedAd!.show(
       onUserEarnedReward: (ad, reward) {
-        debugPrint('User earned reward: ${reward.amount} ${reward.type}');
+        if (kDebugMode) debugPrint('User earned reward: ${reward.amount} ${reward.type}');
         rewardEarned = true;
       },
     );
@@ -169,7 +162,7 @@ class AdService {
     _rewardedAd = null;
     _isRewardedAdReady = false;
     
-    debugPrint('showRewardedAd returning: $rewardEarned');
+    if (kDebugMode) debugPrint('showRewardedAd returning: $rewardEarned');
     return rewardEarned;
   }
   

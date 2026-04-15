@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -1631,6 +1630,206 @@ class AppStrings {
     AppLocale.french: 'OK',
     AppLocale.german: 'OK',
     AppLocale.italian: 'OK',
+  });
+
+  // Diary Edit Screen
+  String get diaryUpdatedCorrectionCleared => _t({
+    AppLocale.japanese: '日記を更新しました！添削はクリアされました。',
+    AppLocale.english: 'Diary updated! Corrections have been cleared.',
+    AppLocale.spanish: '¡Diario actualizado! Las correcciones se han borrado.',
+    AppLocale.chinese: '日记已更新！批改已清除。',
+    AppLocale.korean: '일기가 업데이트되었습니다! 첨삭이 초기화되었습니다.',
+    AppLocale.french: 'Journal mis à jour ! Les corrections ont été effacées.',
+    AppLocale.german: 'Tagebuch aktualisiert! Korrekturen wurden gelöscht.',
+    AppLocale.italian: 'Diario aggiornato! Le correzioni sono state cancellate.',
+  });
+
+  String get discardChangesTitle => _t({
+    AppLocale.japanese: '変更を破棄しますか？',
+    AppLocale.english: 'Discard changes?',
+    AppLocale.spanish: '¿Descartar cambios?',
+    AppLocale.chinese: '放弃更改？',
+    AppLocale.korean: '변경 사항을 삭제하시겠습니까?',
+    AppLocale.french: 'Abandonner les modifications ?',
+    AppLocale.german: 'Änderungen verwerfen?',
+    AppLocale.italian: 'Annullare le modifiche?',
+  });
+
+  String get unsavedChangesMessage => _t({
+    AppLocale.japanese: '保存されていない変更があります。本当に破棄しますか？',
+    AppLocale.english: 'You have unsaved changes. Are you sure you want to discard them?',
+    AppLocale.spanish: 'Tienes cambios sin guardar. ¿Estás seguro de que deseas descartarlos?',
+    AppLocale.chinese: '您有未保存的更改。确定要放弃吗？',
+    AppLocale.korean: '저장되지 않은 변경 사항이 있습니다. 정말 삭제하시겠습니까?',
+    AppLocale.french: 'Vous avez des modifications non enregistrées. Voulez-vous les abandonner ?',
+    AppLocale.german: 'Sie haben ungespeicherte Änderungen. Möchten Sie sie wirklich verwerfen?',
+    AppLocale.italian: 'Hai modifiche non salvate. Sei sicuro di volerle annullare?',
+  });
+
+  String get discard => _t({
+    AppLocale.japanese: '破棄',
+    AppLocale.english: 'Discard',
+    AppLocale.spanish: 'Descartar',
+    AppLocale.chinese: '放弃',
+    AppLocale.korean: '삭제',
+    AppLocale.french: 'Abandonner',
+    AppLocale.german: 'Verwerfen',
+    AppLocale.italian: 'Annulla',
+  });
+
+  String get editDiary => _t({
+    AppLocale.japanese: '日記を編集',
+    AppLocale.english: 'Edit Diary',
+    AppLocale.spanish: 'Editar diario',
+    AppLocale.chinese: '编辑日记',
+    AppLocale.korean: '일기 편집',
+    AppLocale.french: 'Modifier le journal',
+    AppLocale.german: 'Tagebuch bearbeiten',
+    AppLocale.italian: 'Modifica diario',
+  });
+
+  String get saving => _t({
+    AppLocale.japanese: '保存中...',
+    AppLocale.english: 'Saving...',
+    AppLocale.spanish: 'Guardando...',
+    AppLocale.chinese: '保存中...',
+    AppLocale.korean: '저장 중...',
+    AppLocale.french: 'Enregistrement...',
+    AppLocale.german: 'Speichern...',
+    AppLocale.italian: 'Salvataggio...',
+  });
+
+  String get writeEnglishDiaryHint => _t({
+    AppLocale.japanese: '英語で日記を書いてください...',
+    AppLocale.english: 'Write your diary in English...',
+    AppLocale.spanish: 'Escribe tu diario en inglés...',
+    AppLocale.chinese: '请用英语写日记...',
+    AppLocale.korean: '영어로 일기를 써주세요...',
+    AppLocale.french: 'Écrivez votre journal en anglais...',
+    AppLocale.german: 'Schreiben Sie Ihr Tagebuch auf Englisch...',
+    AppLocale.italian: 'Scrivi il tuo diario in inglese...',
+  });
+
+  String get editingNoteWarning => _t({
+    AppLocale.japanese: '注意: 保存すると添削がクリアされます。',
+    AppLocale.english: 'Note: Saving will clear corrections.',
+    AppLocale.spanish: 'Nota: Guardar borrará las correcciones.',
+    AppLocale.chinese: '注意：保存将清除批改。',
+    AppLocale.korean: '주의: 저장하면 첨삭이 초기화됩니다.',
+    AppLocale.french: 'Note : Enregistrer effacera les corrections.',
+    AppLocale.german: 'Hinweis: Speichern löscht die Korrekturen.',
+    AppLocale.italian: 'Nota: Il salvataggio cancellerà le correzioni.',
+  });
+
+  // Forgot Password
+  String get forgotPassword => _t({
+    AppLocale.japanese: 'パスワードを忘れた場合',
+    AppLocale.english: 'Forgot Password?',
+    AppLocale.spanish: '¿Olvidaste tu contraseña?',
+    AppLocale.chinese: '忘记密码？',
+    AppLocale.korean: '비밀번호를 잊으셨나요?',
+    AppLocale.french: 'Mot de passe oublié ?',
+    AppLocale.german: 'Passwort vergessen?',
+    AppLocale.italian: 'Password dimenticata?',
+  });
+
+  String get resetPassword => _t({
+    AppLocale.japanese: 'パスワードリセット',
+    AppLocale.english: 'Reset Password',
+    AppLocale.spanish: 'Restablecer contraseña',
+    AppLocale.chinese: '重置密码',
+    AppLocale.korean: '비밀번호 재설정',
+    AppLocale.french: 'Réinitialiser le mot de passe',
+    AppLocale.german: 'Passwort zurücksetzen',
+    AppLocale.italian: 'Reimposta password',
+  });
+
+  String get resetPasswordInstructions => _t({
+    AppLocale.japanese: '登録したメールアドレスを入力してください。パスワードリセット用の確認コードを送信します。',
+    AppLocale.english: 'Enter your registered email address. We will send a verification code to reset your password.',
+    AppLocale.spanish: 'Introduce tu correo electrónico registrado. Enviaremos un código de verificación para restablecer tu contraseña.',
+    AppLocale.chinese: '请输入您注册的电子邮件地址。我们将发送验证码以重置您的密码。',
+    AppLocale.korean: '등록된 이메일 주소를 입력하세요. 비밀번호 재설정을 위한 인증 코드를 보내드립니다.',
+    AppLocale.french: 'Entrez votre adresse e-mail enregistrée. Nous enverrons un code de vérification pour réinitialiser votre mot de passe.',
+    AppLocale.german: 'Geben Sie Ihre registrierte E-Mail-Adresse ein. Wir senden Ihnen einen Bestätigungscode zum Zurücksetzen Ihres Passworts.',
+    AppLocale.italian: 'Inserisci il tuo indirizzo email registrato. Invieremo un codice di verifica per reimpostare la password.',
+  });
+
+  String get sendResetCode => _t({
+    AppLocale.japanese: '確認コードを送信',
+    AppLocale.english: 'Send Reset Code',
+    AppLocale.spanish: 'Enviar código',
+    AppLocale.chinese: '发送验证码',
+    AppLocale.korean: '인증 코드 보내기',
+    AppLocale.french: 'Envoyer le code',
+    AppLocale.german: 'Code senden',
+    AppLocale.italian: 'Invia codice',
+  });
+
+  String get resetCodeSent => _t({
+    AppLocale.japanese: '確認コードを送信しました。メールをご確認ください。',
+    AppLocale.english: 'Reset code sent. Please check your email.',
+    AppLocale.spanish: 'Código enviado. Revisa tu correo electrónico.',
+    AppLocale.chinese: '验证码已发送。请检查您的电子邮件。',
+    AppLocale.korean: '인증 코드가 전송되었습니다. 이메일을 확인하세요.',
+    AppLocale.french: 'Code envoyé. Veuillez vérifier votre e-mail.',
+    AppLocale.german: 'Code gesendet. Bitte überprüfen Sie Ihre E-Mail.',
+    AppLocale.italian: 'Codice inviato. Controlla la tua email.',
+  });
+
+  String get newPassword => _t({
+    AppLocale.japanese: '新しいパスワード',
+    AppLocale.english: 'New Password',
+    AppLocale.spanish: 'Nueva contraseña',
+    AppLocale.chinese: '新密码',
+    AppLocale.korean: '새 비밀번호',
+    AppLocale.french: 'Nouveau mot de passe',
+    AppLocale.german: 'Neues Passwort',
+    AppLocale.italian: 'Nuova password',
+  });
+
+  String get confirmNewPassword => _t({
+    AppLocale.japanese: '新しいパスワードを確認',
+    AppLocale.english: 'Confirm New Password',
+    AppLocale.spanish: 'Confirmar nueva contraseña',
+    AppLocale.chinese: '确认新密码',
+    AppLocale.korean: '새 비밀번호 확인',
+    AppLocale.french: 'Confirmer le nouveau mot de passe',
+    AppLocale.german: 'Neues Passwort bestätigen',
+    AppLocale.italian: 'Conferma nuova password',
+  });
+
+  String get passwordResetSuccess => _t({
+    AppLocale.japanese: 'パスワードがリセットされました。新しいパスワードでログインしてください。',
+    AppLocale.english: 'Password reset successful. Please log in with your new password.',
+    AppLocale.spanish: 'Contraseña restablecida. Inicia sesión con tu nueva contraseña.',
+    AppLocale.chinese: '密码重置成功。请使用新密码登录。',
+    AppLocale.korean: '비밀번호가 재설정되었습니다. 새 비밀번호로 로그인하세요.',
+    AppLocale.french: 'Mot de passe réinitialisé. Veuillez vous connecter avec votre nouveau mot de passe.',
+    AppLocale.german: 'Passwort zurückgesetzt. Bitte melden Sie sich mit Ihrem neuen Passwort an.',
+    AppLocale.italian: 'Password reimpostata. Accedi con la nuova password.',
+  });
+
+  String get passwordsDoNotMatch => _t({
+    AppLocale.japanese: 'パスワードが一致しません',
+    AppLocale.english: 'Passwords do not match',
+    AppLocale.spanish: 'Las contraseñas no coinciden',
+    AppLocale.chinese: '密码不匹配',
+    AppLocale.korean: '비밀번호가 일치하지 않습니다',
+    AppLocale.french: 'Les mots de passe ne correspondent pas',
+    AppLocale.german: 'Passwörter stimmen nicht überein',
+    AppLocale.italian: 'Le password non corrispondono',
+  });
+
+  String get verificationCode => _t({
+    AppLocale.japanese: '確認コード',
+    AppLocale.english: 'Verification Code',
+    AppLocale.spanish: 'Código de verificación',
+    AppLocale.chinese: '验证码',
+    AppLocale.korean: '인증 코드',
+    AppLocale.french: 'Code de vérification',
+    AppLocale.german: 'Bestätigungscode',
+    AppLocale.italian: 'Codice di verifica',
   });
 }
 

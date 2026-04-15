@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +7,7 @@ import '../../features/auth/data/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/signup_screen.dart';
 import '../../features/auth/presentation/screens/confirm_signup_screen.dart';
+import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/diary/presentation/screens/diary_list_screen.dart';
 import '../../features/diary/presentation/screens/diary_editor_screen.dart';
 import '../../features/diary/presentation/screens/diary_detail_screen.dart';
@@ -20,7 +22,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/login',
-    debugLogDiagnostics: true,
+    debugLogDiagnostics: kDebugMode,
     refreshListenable: _RouterRefreshStream(ref),
     routes: [
       // Auth Routes
@@ -41,6 +43,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final email = state.extra as String?;
           return ConfirmSignUpScreen(email: email);
         },
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        name: 'forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
       
       // Main App with Bottom Navigation

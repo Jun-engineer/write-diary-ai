@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -114,7 +115,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
         return false;
       }
     } catch (e) {
-      debugPrint('Error checking correction usage: $e');
+      if (kDebugMode) debugPrint('Error checking correction usage: $e');
       // If error checking, continue with correction (backend will check again)
       return true;
     }
@@ -243,9 +244,9 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
         mode: _selectedMode,
       );
 
-      debugPrint('Correction result: $result');
-      debugPrint('correctedText: ${result['correctedText']}');
-      debugPrint('corrections: ${result['corrections']}');
+      if (kDebugMode) debugPrint('Correction result: $result');
+      if (kDebugMode) debugPrint('correctedText: ${result['correctedText']}');
+      if (kDebugMode) debugPrint('corrections: ${result['corrections']}');
 
       // Store result in local state - this survives ad display
       _pendingCorrectionResult = {
@@ -329,7 +330,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
       final updatedDiary = Map<String, dynamic>.from(currentState.value!);
       updatedDiary['correctedText'] = _pendingCorrectionResult!['correctedText'];
       updatedDiary['corrections'] = _pendingCorrectionResult!['corrections'];
-      debugPrint('Applied correction result to diary');
+      if (kDebugMode) debugPrint('Applied correction result to diary');
       notifier.updateDiary(updatedDiary);
     }
   }

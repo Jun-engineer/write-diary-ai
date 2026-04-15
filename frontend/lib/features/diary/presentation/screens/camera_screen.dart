@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -133,8 +134,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       // Try to scan
       await _performScan(base64Image);
     } catch (e, stackTrace) {
-      debugPrint('Capture Error: $e');
-      debugPrint('Stack trace: $stackTrace');
+      if (kDebugMode) debugPrint('Capture Error: $e');
+      if (kDebugMode) debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to capture image: $e')),
@@ -212,7 +213,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       // Not a JSON response
     }
 
-    debugPrint('Scan limit error data: $errorData');
+    if (kDebugMode) debugPrint('Scan limit error data: $errorData');
     final canWatchAd = errorData?['canWatchAd'] == true;
     final bonusCount = errorData?['bonusCount'] ?? 0;
     final maxBonus = errorData?['maxBonus'] ?? 2;

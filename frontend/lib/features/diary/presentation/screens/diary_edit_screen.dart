@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/providers/locale_provider.dart';
 import 'diary_detail_screen.dart';
 import 'diary_list_screen.dart';
 
@@ -63,9 +64,10 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
       ref.invalidate(diaryListProvider);
 
       if (mounted) {
+        final s = ref.read(stringsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('日記を更新しました！添削はクリアされました。'),
+          SnackBar(
+            content: Text(s.diaryUpdatedCorrectionCleared),
             backgroundColor: Colors.green,
           ),
         );
@@ -90,19 +92,20 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
   Future<bool> _onWillPop() async {
     if (!_hasChanges) return true;
 
+    final s = ref.read(stringsProvider);
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('変更を破棄しますか？'),
-        content: const Text('保存されていない変更があります。本当に破棄しますか？'),
+        title: Text(s.discardChangesTitle),
+        content: Text(s.unsavedChangesMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('キャンセル'),
+            child: Text(s.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('破棄'),
+            child: Text(s.discard),
           ),
         ],
       ),
@@ -113,6 +116,7 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = ref.watch(stringsProvider);
     return PopScope(
       canPop: !_hasChanges,
       onPopInvokedWithResult: (didPop, result) async {
@@ -137,7 +141,7 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
               }
             },
           ),
-          title: const Text('日記を編集'),
+          title: Text(s.editDiary),
           actions: [
             TextButton.icon(
               onPressed: _hasChanges && !_isSaving ? _saveChanges : null,
@@ -148,7 +152,7 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.save),
-              label: Text(_isSaving ? '保存中...' : '保存'),
+              label: Text(_isSaving ? s.saving : s.save),
             ),
           ],
         ),
@@ -158,14 +162,14 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '日記を編集',
+                s.editDiary,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               const SizedBox(height: 4),
               Text(
-                '注意: 保存すると添削がクリアされます。',
+                s.editingNoteWarning,
                 style: TextStyle(color: Colors.grey[600], fontSize: 13),
               ),
               const SizedBox(height: 16),
@@ -176,7 +180,7 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
                   expands: true,
                   textAlignVertical: TextAlignVertical.top,
                   decoration: InputDecoration(
-                    hintText: '英語で日記を書いてください...',
+                    hintText: s.writeEnglishDiaryHint,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

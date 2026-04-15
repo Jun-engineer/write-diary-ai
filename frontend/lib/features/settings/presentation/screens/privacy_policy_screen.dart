@@ -131,7 +131,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               '10. お問い合わせ',
               '''本プライバシーポリシーに関するご質問やご意見がございましたら、以下までお問い合わせください：
 
-メール: support@writediary-ai.example.com''',
+メール: support@nammoku-solutions.com''',
             ),
             const SizedBox(height: 32),
           ],
