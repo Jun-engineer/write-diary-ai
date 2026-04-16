@@ -37,16 +37,17 @@ class AdService {
   
   /// Initialize the Mobile Ads SDK
   static Future<void> initialize() async {
-    // Request ATT permission on iOS before initializing ads
+    await MobileAds.instance.initialize();
+  }
+
+  /// Request ATT permission - must be called after first frame is rendered
+  static Future<void> requestTrackingPermission() async {
     if (Platform.isIOS) {
       final status = await AppTrackingTransparency.trackingAuthorizationStatus;
       if (status == TrackingStatus.notDetermined) {
-        // Wait briefly to ensure app is fully launched before showing ATT dialog
-        await Future.delayed(const Duration(milliseconds: 500));
         await AppTrackingTransparency.requestTrackingAuthorization();
       }
     }
-    await MobileAds.instance.initialize();
   }
   
   /// Load an interstitial ad

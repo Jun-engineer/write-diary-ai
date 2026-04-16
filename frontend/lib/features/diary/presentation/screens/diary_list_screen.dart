@@ -23,8 +23,10 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
   @override
   void initState() {
     super.initState();
-    // Preload rewarded ad for scan bonus
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Request ATT permission after first frame is rendered
+      AdService.requestTrackingPermission();
+      // Preload rewarded ad for scan bonus
       ref.read(adServiceProvider).loadRewardedAd();
     });
   }

@@ -14,7 +14,7 @@ void main() async {
   // Initialize Amplify
   await _configureAmplify();
   
-  // Initialize AdMob
+  // Initialize AdMob (ATT dialog is requested after first frame in AdService)
   await AdService.initialize();
   
   runApp(
