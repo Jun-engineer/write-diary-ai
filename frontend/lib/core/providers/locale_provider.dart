@@ -1,3 +1,4 @@
+import 'dart:ui' show Locale;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,6 +26,20 @@ enum AppLocale {
   
   /// Check if this locale is Japanese (for conditional logic)
   bool get isJapanese => this == AppLocale.japanese;
+
+  /// Convert to Flutter Locale for MaterialApp
+  Locale toLocale() {
+    switch (this) {
+      case AppLocale.japanese: return const Locale('ja');
+      case AppLocale.english: return const Locale('en');
+      case AppLocale.spanish: return const Locale('es');
+      case AppLocale.chinese: return const Locale('zh');
+      case AppLocale.korean: return const Locale('ko');
+      case AppLocale.french: return const Locale('fr');
+      case AppLocale.german: return const Locale('de');
+      case AppLocale.italian: return const Locale('it');
+    }
+  }
 }
 
 /// Locale provider
@@ -32,25 +47,44 @@ final localeProvider = StateNotifierProvider<LocaleNotifier, AppLocale>((ref) {
   return LocaleNotifier();
 });
 
+/// Whether language selection has been completed (first launch)
+final languageSelectedProvider = StateProvider<bool>((ref) => false);
+
 class LocaleNotifier extends StateNotifier<AppLocale> {
   LocaleNotifier() : super(AppLocale.japanese) {
     _loadLocale();
   }
 
   static const _key = 'app_locale';
+  static const _languageSelectedKey = 'language_selected';
+  bool _languageSelected = false;
+
+  bool get languageSelected => _languageSelected;
 
   Future<void> _loadLocale() async {
     final prefs = await SharedPreferences.getInstance();
     final code = prefs.getString(_key);
+    _languageSelected = prefs.getBool(_languageSelectedKey) ?? false;
     if (code != null) {
       state = AppLocale.fromCode(code);
     }
+  }
+
+  Future<bool> isLanguageSelected() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_languageSelectedKey) ?? false;
   }
 
   Future<void> setLocale(AppLocale locale) async {
     state = locale;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, locale.code);
+  }
+
+  Future<void> completeLanguageSelection() async {
+    _languageSelected = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_languageSelectedKey, true);
   }
 }
 

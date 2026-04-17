@@ -15,16 +15,25 @@ import '../../features/diary/presentation/screens/diary_edit_screen.dart';
 import '../../features/diary/presentation/screens/camera_screen.dart';
 import '../../features/review/presentation/screens/review_list_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/onboarding/presentation/screens/language_selection_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
+import '../providers/locale_provider.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
+  final languageSelected = ref.watch(languageSelectedProvider);
 
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/language-selection',
     debugLogDiagnostics: kDebugMode,
     refreshListenable: _RouterRefreshStream(ref),
     routes: [
+      // Language Selection (first launch)
+      GoRoute(
+        path: '/language-selection',
+        name: 'language-selection',
+        builder: (context, state) => const LanguageSelectionScreen(),
+      ),
       // Auth Routes
       GoRoute(
         path: '/login',
@@ -129,6 +138,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = currentPath == '/login' || 
                          currentPath == '/signup' ||
                          currentPath == '/confirm-signup';
+      final isLanguageRoute = currentPath == '/language-selection';
+
+      // If language not yet selected, stay on language selection
+      if (!languageSelected && !isLanguageRoute) {
+        return '/language-selection';
+      }
+
+      // If language already selected and on language route, go to login
+      if (languageSelected && isLanguageRoute) {
+        return '/login';
+      }
 
       // Don't redirect while loading
       if (isLoading) {

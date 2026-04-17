@@ -1,0 +1,2 @@
+"NSCameraUsageDescription" = "手書きの日記をスキャンして文字認識するためにカメラを使用します。";
+"NSUserTrackingUsageDescription" = "パーソナライズされた広告を配信するためにこの識別子を使用します。トラッキングを許可しないことも選択できます。";
