@@ -75,9 +75,10 @@ class _DiaryEditScreenState extends ConsumerState<DiaryEditScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final s = ref.read(stringsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update: $e'),
+            content: Text(s.failedToUpdate('$e')),
             backgroundColor: Colors.red,
           ),
         );

@@ -7,13 +7,30 @@ final userProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final apiService = ref.watch(apiServiceProvider);
   final profile = await apiService.getUserProfile();
   
+  // Check if there are onboarding language selections to sync
+  final onboardingTarget = await LocaleNotifier.getOnboardingTargetLanguage();
+  final onboardingNative = await LocaleNotifier.getOnboardingNativeLanguage();
+  if (onboardingTarget != null && onboardingNative != null) {
+    try {
+      await apiService.updateUserProfile(
+        targetLanguage: onboardingTarget,
+        nativeLanguage: onboardingNative,
+      );
+      await LocaleNotifier.clearOnboardingLanguages();
+      // Re-fetch updated profile
+      final updatedProfile = await apiService.getUserProfile();
+      return updatedProfile;
+    } catch (_) {
+      // If sync fails, continue with existing profile
+    }
+  }
+
   // Sync app locale with user's native language when profile is loaded
   final nativeLanguage = profile['nativeLanguage'] as String? ?? 'japanese';
   final currentLocale = ref.read(localeProvider);
   final targetLocale = AppLocale.fromCode(nativeLanguage);
   
   if (currentLocale != targetLocale) {
-    // Update locale asynchronously to avoid state update during build
     Future.microtask(() {
       ref.read(localeProvider.notifier).setLocale(targetLocale);
     });

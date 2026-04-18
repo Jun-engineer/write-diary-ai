@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/auth_provider.dart';
+import '../../../../core/providers/locale_provider.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -46,8 +47,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.status == AuthStatus.confirmSignUp) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please check your email for verification code'),
+          SnackBar(
+            content: Text(ref.read(stringsProvider).checkEmailForVerificationCode),
             backgroundColor: Colors.green,
           ),
         );
@@ -228,7 +229,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text('Sign Up'),
+                      : Text(ref.read(stringsProvider).signUp),
                 ),
                 
                 const SizedBox(height: 16),
@@ -254,7 +255,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     ),
                     TextButton(
                       onPressed: () => context.go('/login'),
-                      child: const Text('Log In'),
+                      child: Text(ref.read(stringsProvider).logIn),
                     ),
                   ],
                 ),

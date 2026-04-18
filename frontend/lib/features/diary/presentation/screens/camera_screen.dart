@@ -114,8 +114,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       final XFile imageFile = await _cameraController!.takePicture();
       
       if (mounted) {
+        final s = ref.read(stringsProvider);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Analyzing handwriting with AI...'), duration: Duration(seconds: 2)),
+          SnackBar(content: Text(s.analyzingHandwriting), duration: const Duration(seconds: 2)),
         );
       }
       
@@ -138,7 +139,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       if (kDebugMode) debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to capture image: $e')),
+          SnackBar(content: Text(ref.read(stringsProvider).failedToCaptureImage('$e'))),
         );
       }
     } finally {
@@ -156,16 +157,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       if (mounted) {
         if (extractedText.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No text detected. Make sure the handwriting is visible.'),
-              duration: Duration(seconds: 3),
+            SnackBar(
+              content: Text(ref.read(stringsProvider).noTextDetected),
+              duration: const Duration(seconds: 3),
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Text recognized successfully!'),
-              duration: Duration(seconds: 1),
+            SnackBar(
+              content: Text(ref.read(stringsProvider).textRecognizedSuccessfully),
+              duration: const Duration(seconds: 1),
             ),
           );
           // Navigate to editor with OCR result
@@ -180,10 +181,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
         // Parse the error response to check if it's a scan limit error
         await _handleScanLimitError(e.response?.data);
       } else {
-        _showError('Failed to process image: ${e.message}');
+        _showError(ref.read(stringsProvider).failedToProcessImage('${e.message}'));
       }
     } catch (e) {
-      _showError('Failed to process image: $e');
+      _showError(ref.read(stringsProvider).failedToProcessImage('$e'));
     }
   }
 
@@ -314,7 +315,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
           await _performScan(_pendingImageBase64!);
         }
       } catch (e) {
-        _showError('Failed to grant bonus: $e');
+        _showError(ref.read(stringsProvider).failedToGrantBonus('$e'));
       }
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -449,7 +450,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
                   onPressed: () async {
                     await openAppSettings();
                   },
-                  child: const Text('Open Settings'),
+                  child: Text(ref.read(stringsProvider).openSettings),
                 ),
                 const SizedBox(height: 12),
                 TextButton(
@@ -460,7 +461,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
                     });
                     _requestCameraPermission();
                   },
-                  child: const Text('Try Again', style: TextStyle(color: Colors.white70)),
+                  child: Text(ref.read(stringsProvider).tryAgain, style: const TextStyle(color: Colors.white70)),
                 ),
               ] else
                 ElevatedButton(
@@ -470,7 +471,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
                     });
                     _initializeCamera();
                   },
-                  child: const Text('Retry'),
+                  child: Text(ref.read(stringsProvider).retry),
                 ),
             ],
           ),

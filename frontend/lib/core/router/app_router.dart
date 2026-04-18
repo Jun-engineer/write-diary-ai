@@ -166,7 +166,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // If not authenticated and not on auth route, redirect to login
-      if (!isAuthenticated && !isAuthRoute) {
+      if (!isAuthenticated && !isAuthRoute && !isLanguageRoute) {
         return '/login';
       }
 

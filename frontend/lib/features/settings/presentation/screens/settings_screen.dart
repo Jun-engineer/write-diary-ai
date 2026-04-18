@@ -27,11 +27,8 @@ final correctionUsageProvider = FutureProvider.autoDispose<Map<String, dynamic>>
   return apiService.getCorrectionUsage();
 });
 
-/// Provider for user profile data
-final userProfileProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
-  final apiService = ref.watch(apiServiceProvider);
-  return apiService.getUserProfile();
-});
+// Settings screen uses userProvider from user_provider.dart for profile data
+// This ensures onboarding language selections are synced to the backend
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -165,7 +162,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         nativeLanguage: nativeLanguage,
       );
       
-      ref.invalidate(userProfileProvider);
       ref.invalidate(userProvider);
 
       // When native language changes, also update the app UI locale
@@ -233,7 +229,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final apiService = ref.read(apiServiceProvider);
       await apiService.updateUserProfile(displayName: newName);
       
-      ref.invalidate(userProfileProvider);
+      ref.invalidate(userProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -311,7 +307,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final scanUsageAsync = ref.watch(scanUsageProvider);
-    final userProfileAsync = ref.watch(userProfileProvider);
+    final userProfileAsync = ref.watch(userProvider);
     final s = ref.watch(stringsProvider);
     final locale = ref.watch(localeProvider);
     final isJapanese = locale == AppLocale.japanese;
@@ -323,7 +319,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              ref.invalidate(userProfileProvider);
+              ref.invalidate(userProvider);
               ref.invalidate(scanUsageProvider);
               ref.invalidate(correctionUsageProvider);
             },

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/auth_provider.dart';
+import '../../../../core/providers/locale_provider.dart';
 
 class ConfirmSignUpScreen extends ConsumerStatefulWidget {
   final String? email;
@@ -38,7 +39,7 @@ class _ConfirmSignUpScreenState extends ConsumerState<ConfirmSignUpScreen> {
   Future<void> _handleConfirm() async {
     if (_code.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter the complete 6-digit code')),
+        SnackBar(content: Text(ref.read(stringsProvider).pleaseEnterCompleteCode)),
       );
       return;
     }
@@ -49,8 +50,8 @@ class _ConfirmSignUpScreenState extends ConsumerState<ConfirmSignUpScreen> {
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email verified! Please sign in.'),
+        SnackBar(
+          content: Text(ref.read(stringsProvider).emailVerifiedPleaseSignIn),
           backgroundColor: Colors.green,
         ),
       );
@@ -66,7 +67,7 @@ class _ConfirmSignUpScreenState extends ConsumerState<ConfirmSignUpScreen> {
     if (mounted) {
       setState(() => _isResending = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Verification code sent!')),
+        SnackBar(content: Text(ref.read(stringsProvider).verificationCodeSent)),
       );
     }
   }
@@ -108,7 +109,7 @@ class _ConfirmSignUpScreenState extends ConsumerState<ConfirmSignUpScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/signup'),
         ),
-        title: const Text('Verify Email'),
+        title: Text(ref.read(stringsProvider).verifyEmail),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -201,7 +202,7 @@ class _ConfirmSignUpScreenState extends ConsumerState<ConfirmSignUpScreen> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Verify Email'),
+                      : Text(ref.read(stringsProvider).verifyEmail),
                 ),
 
                 const SizedBox(height: 16),
@@ -222,7 +223,7 @@ class _ConfirmSignUpScreenState extends ConsumerState<ConfirmSignUpScreen> {
                               width: 16,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Resend'),
+                          : Text(ref.read(stringsProvider).resend),
                     ),
                   ],
                 ),

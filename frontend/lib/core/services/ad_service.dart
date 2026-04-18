@@ -35,8 +35,15 @@ class AdService {
   bool _isInterstitialAdReady = false;
   bool _isRewardedAdReady = false;
   
+  /// Skip ads in debug mode to avoid simulator crashes
+  static bool get _skipAds => kDebugMode;
+
   /// Initialize the Mobile Ads SDK
   static Future<void> initialize() async {
+    if (_skipAds) {
+      if (kDebugMode) debugPrint('Skipping ad initialization in debug mode');
+      return;
+    }
     await MobileAds.instance.initialize();
   }
 
@@ -52,6 +59,7 @@ class AdService {
   
   /// Load an interstitial ad
   void loadInterstitialAd() {
+    if (_skipAds) return;
     InterstitialAd.load(
       adUnitId: AdConfig.interstitialAdUnitId,
       request: const AdRequest(),
@@ -71,6 +79,7 @@ class AdService {
   
   /// Load a rewarded ad
   void loadRewardedAd() {
+    if (_skipAds) return;
     RewardedAd.load(
       adUnitId: AdConfig.rewardedAdUnitId,
       request: const AdRequest(),

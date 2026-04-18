@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/auth_provider.dart';
+import '../../../../core/providers/locale_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -40,10 +41,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (authState.status == AuthStatus.signUpComplete) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Successfully signed up! Please log in.'),
+          SnackBar(
+            content: Text(ref.read(stringsProvider).signUpSuccessPleaseLogIn),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
         ref.read(authProvider.notifier).clearSignUpComplete();
@@ -94,7 +95,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Improve your English writing',
+                  ref.read(stringsProvider).improveWriting(
+                    ref.read(stringsProvider).getLanguageName(
+                      ref.read(onboardingTargetLanguageProvider).code,
+                    ),
+                  ),
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.grey[600],
                   ),
@@ -156,7 +161,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () => context.go('/forgot-password'),
-                    child: const Text('Forgot Password?'),
+                    child: Text(ref.read(stringsProvider).forgotPassword),
                   ),
                 ),
                 
@@ -177,7 +182,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text('Log In'),
+                      : Text(ref.read(stringsProvider).logIn),
                 ),
                 
                 const SizedBox(height: 24),
@@ -192,7 +197,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     TextButton(
                       onPressed: () => context.go('/signup'),
-                      child: const Text('Sign Up'),
+                      child: Text(ref.read(stringsProvider).signUp),
                     ),
                   ],
                 ),

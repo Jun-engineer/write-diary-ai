@@ -94,7 +94,7 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save: $e'),
+            content: Text(s.failedToSave('$e')),
             backgroundColor: Colors.red,
           ),
         );
@@ -148,7 +148,7 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
                   const Icon(Icons.calendar_today, size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
+                    DateFormat('EEEE, MMMM d, yyyy', ref.watch(localeProvider).intlLocale).format(_selectedDate),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const Icon(Icons.arrow_drop_down),

@@ -58,7 +58,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to delete: $e'),
+            content: Text(s.failedToDelete('$e')),
             backgroundColor: Colors.red,
           ),
         );

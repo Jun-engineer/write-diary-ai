@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/ad_service.dart';
 import '../../../../core/providers/locale_provider.dart';
+import '../../../../core/providers/user_provider.dart';
 
 /// Provider for diary list
 final diaryListProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
@@ -155,7 +156,7 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to grant bonus: $e')),
+            SnackBar(content: Text(ref.read(stringsProvider).failedToGrantBonus('$e'))),
           );
         }
       }
@@ -171,6 +172,8 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
   Widget build(BuildContext context) {
     final diariesAsync = ref.watch(diaryListProvider);
     final s = ref.watch(stringsProvider);
+    // Trigger user profile load to sync onboarding language selections
+    ref.watch(userProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -302,7 +305,7 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
         if (mounted) {
           if (diaries.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(s.noDiaryForDate(DateFormat('MMMM d, yyyy').format(picked)))),
+              SnackBar(content: Text(s.noDiaryForDate(DateFormat('MMMM d, yyyy', ref.read(localeProvider).intlLocale).format(picked)))),
             );
           } else {
             // Navigate to the first diary of that date
@@ -312,7 +315,7 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
+            SnackBar(content: Text('${ref.read(stringsProvider).retry}: $e')),
           );
         }
       }
@@ -360,7 +363,7 @@ class _DiaryCard extends ConsumerWidget {
                   Flexible(
                     child: Text(
                       dateTime != null 
-                          ? DateFormat('MMMM d, yyyy').format(dateTime)
+                          ? DateFormat('MMMM d, yyyy', ref.watch(localeProvider).intlLocale).format(dateTime)
                           : date,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,

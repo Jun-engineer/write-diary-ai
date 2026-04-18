@@ -122,24 +122,20 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
   }
 
   Future<bool?> _showCorrectionLimitDialog(int remainingBonus) {
+    final s = ref.read(stringsProvider);
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Daily Correction Limit Reached'),
-        content: Text(
-          'You\'ve used your free corrections for today.\n\n'
-          'Watch a short ad to get 1 bonus correction!\n'
-          '($remainingBonus bonus corrections remaining today)\n\n'
-          'After watching, tap "Run AI Correction" again to use your bonus.',
-        ),
+        title: Text(s.dailyCorrectionLimitReached),
+        content: Text(s.correctionLimitBody(remainingBonus)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(s.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Watch Ad'),
+            child: Text(s.watchAd),
           ),
         ],
       ),
@@ -147,18 +143,16 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
   }
 
   Future<void> _showMaxBonusReachedDialog() async {
+    final s = ref.read(stringsProvider);
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Daily Correction Limit Reached'),
-        content: const Text(
-          'You\'ve used all your corrections for today, including bonus corrections.\n\n'
-          'Come back tomorrow for more free corrections, or upgrade to Premium for unlimited AI corrections!',
-        ),
+        title: Text(s.dailyCorrectionLimitReached),
+        content: Text(s.maxBonusReachedBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text(s.ok),
           ),
         ],
       ),
@@ -170,8 +164,9 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
     
     // Show loading
     if (mounted) {
+      final s = ref.read(stringsProvider);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Loading ad...'), duration: Duration(seconds: 5)),
+        SnackBar(content: Text(s.loadingAd), duration: const Duration(seconds: 5)),
       );
     }
 
@@ -187,7 +182,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
     if (!adService.isRewardedAdReady) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ad not available. Please try again in a moment.')),
+          SnackBar(content: Text(ref.read(stringsProvider).adNotAvailable)),
         );
       }
       adService.loadRewardedAd();
@@ -204,10 +199,10 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
         await apiService.grantBonusCorrection();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bonus correction granted! Tap "Run AI Correction" to use it.'),
+          SnackBar(
+            content: Text(ref.read(stringsProvider).bonusCorrectionGranted),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 4),
+            duration: const Duration(seconds: 4),
           ),
         );
 
@@ -217,14 +212,14 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to grant bonus: $e')),
+            SnackBar(content: Text(ref.read(stringsProvider).failedToGrantBonus('$e'))),
           );
         }
         return false;
       }
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please watch the complete ad to earn the bonus correction.')),
+        SnackBar(content: Text(ref.read(stringsProvider).pleaseWatchCompleteAd)),
       );
     }
     return false;
@@ -302,7 +297,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
         // Check if it's a 403 error (correction limit reached)
         String errorMessage = '$e';
         if (e.toString().contains('403')) {
-          errorMessage = 'Daily correction limit reached. Try again tomorrow or watch an ad for bonus corrections.';
+          errorMessage = s.correctionLimitReached403;
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -457,7 +452,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/diaries'),
         ),
-        title: const Text('Diary'),
+        title: Text(ref.watch(stringsProvider).diary),
         actions: [
           if (diaryAsync.hasValue) ...[
             IconButton(
@@ -497,7 +492,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.read(diaryDetailProvider(widget.diaryId).notifier).refresh(),
-                child: const Text('Retry'),
+                child: Text(ref.read(stringsProvider).retry),
               ),
             ],
           ),
@@ -529,7 +524,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
           // Date header
           if (dateTime != null)
             Text(
-              DateFormat('EEEE, MMMM d, yyyy').format(dateTime),
+              DateFormat('EEEE, MMMM d, yyyy', ref.watch(localeProvider).intlLocale).format(dateTime),
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Colors.grey[600],
                   ),

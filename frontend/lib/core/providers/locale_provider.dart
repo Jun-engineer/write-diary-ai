@@ -40,6 +40,20 @@ enum AppLocale {
       case AppLocale.italian: return const Locale('it');
     }
   }
+
+  /// Get intl locale code for DateFormat
+  String get intlLocale {
+    switch (this) {
+      case AppLocale.japanese: return 'ja';
+      case AppLocale.english: return 'en';
+      case AppLocale.spanish: return 'es';
+      case AppLocale.chinese: return 'zh_CN';
+      case AppLocale.korean: return 'ko';
+      case AppLocale.french: return 'fr';
+      case AppLocale.german: return 'de';
+      case AppLocale.italian: return 'it';
+    }
+  }
 }
 
 /// Locale provider
@@ -50,6 +64,9 @@ final localeProvider = StateNotifierProvider<LocaleNotifier, AppLocale>((ref) {
 /// Whether language selection has been completed (first launch)
 final languageSelectedProvider = StateProvider<bool>((ref) => false);
 
+/// Target language selected during onboarding (before login)
+final onboardingTargetLanguageProvider = StateProvider<AppLocale>((ref) => AppLocale.english);
+
 class LocaleNotifier extends StateNotifier<AppLocale> {
   LocaleNotifier() : super(AppLocale.japanese) {
     _loadLocale();
@@ -57,6 +74,7 @@ class LocaleNotifier extends StateNotifier<AppLocale> {
 
   static const _key = 'app_locale';
   static const _languageSelectedKey = 'language_selected';
+  static const _onboardingTargetKey = 'onboarding_target_language';
   bool _languageSelected = false;
 
   bool get languageSelected => _languageSelected;
@@ -75,10 +93,39 @@ class LocaleNotifier extends StateNotifier<AppLocale> {
     return prefs.getBool(_languageSelectedKey) ?? false;
   }
 
+  /// Get the target language stored during onboarding
+  static Future<String?> getOnboardingTargetLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('onboarding_target_language');
+  }
+
+  /// Get the native language stored during onboarding
+  static Future<String?> getOnboardingNativeLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('onboarding_native_language');
+  }
+
+  /// Clear onboarding languages after syncing to backend
+  static Future<void> clearOnboardingLanguages() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('onboarding_target_language');
+    await prefs.remove('onboarding_native_language');
+  }
+
   Future<void> setLocale(AppLocale locale) async {
     state = locale;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, locale.code);
+  }
+
+  Future<void> setOnboardingTargetLanguage(AppLocale locale) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_onboardingTargetKey, locale.code);
+  }
+
+  Future<void> setOnboardingNativeLanguage(AppLocale locale) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('onboarding_native_language', locale.code);
   }
 
   Future<void> completeLanguageSelection() async {
@@ -1864,6 +1911,294 @@ class AppStrings {
     AppLocale.french: 'Code de vérification',
     AppLocale.german: 'Bestätigungscode',
     AppLocale.italian: 'Codice di verifica',
+  });
+
+  // --- Notification / Dialog strings ---
+
+  String get dailyCorrectionLimitReached => _t({
+    AppLocale.japanese: '本日の添削回数の上限に達しました',
+    AppLocale.english: 'Daily Correction Limit Reached',
+    AppLocale.spanish: 'Límite diario de correcciones alcanzado',
+    AppLocale.chinese: '已达每日修改上限',
+    AppLocale.korean: '일일 교정 한도에 도달했습니다',
+    AppLocale.french: 'Limite de corrections quotidienne atteinte',
+    AppLocale.german: 'Tägliches Korrekturlimit erreicht',
+    AppLocale.italian: 'Limite giornaliero di correzioni raggiunto',
+  });
+
+  String correctionLimitBody(int remainingBonus) => _t({
+    AppLocale.japanese: '本日の無料添削を使い切りました。\n\n短い広告を見て、ボーナス添削を1回獲得しましょう！\n(本日のボーナス添削残り$remainingBonus回)\n\n視聴後、もう一度「AI添削を実行」をタップしてください。',
+    AppLocale.english: 'You\'ve used your free corrections for today.\n\nWatch a short ad to get 1 bonus correction!\n($remainingBonus bonus corrections remaining today)\n\nAfter watching, tap "Run AI Correction" again to use your bonus.',
+    AppLocale.spanish: 'Has usado tus correcciones gratuitas de hoy.\n\nMira un breve anuncio para obtener 1 corrección extra.\n($remainingBonus correcciones extra restantes hoy)\n\nDespués de ver el anuncio, toca "Ejecutar corrección IA" de nuevo.',
+    AppLocale.chinese: '您今天的免费修改次数已用完。\n\n观看一段短广告即可获得1次额外修改！\n(今天还剩$remainingBonus次额外修改)\n\n观看后，再次点击"运行AI修改"即可使用。',
+    AppLocale.korean: '오늘의 무료 교정을 모두 사용했습니다.\n\n짧은 광고를 시청하고 보너스 교정 1회를 받으세요!\n(오늘 남은 보너스 교정 $remainingBonus회)\n\n시청 후 "AI 교정 실행"을 다시 탭하세요.',
+    AppLocale.french: 'Vous avez utilisé vos corrections gratuites aujourd\'hui.\n\nRegardez une courte publicité pour obtenir 1 correction bonus !\n($remainingBonus corrections bonus restantes aujourd\'hui)\n\nAprès le visionnage, appuyez à nouveau sur "Lancer la correction IA".',
+    AppLocale.german: 'Sie haben Ihre kostenlosen Korrekturen für heute aufgebraucht.\n\nSchauen Sie eine kurze Werbung für 1 Bonuskorrektur!\n($remainingBonus Bonuskorrekturen heute übrig)\n\nTippen Sie danach erneut auf "KI-Korrektur starten".',
+    AppLocale.italian: 'Hai esaurito le correzioni gratuite di oggi.\n\nGuarda un breve annuncio per ottenere 1 correzione bonus!\n($remainingBonus correzioni bonus rimanenti oggi)\n\nDopo la visione, tocca di nuovo "Esegui correzione IA".',
+  });
+
+  String get maxBonusReachedBody => _t({
+    AppLocale.japanese: '本日の添削回数（ボーナス含む）をすべて使い切りました。\n\n明日また無料添削をご利用いただけます。プレミアムにアップグレードすると、AI添削が無制限になります！',
+    AppLocale.english: 'You\'ve used all your corrections for today, including bonus corrections.\n\nCome back tomorrow for more free corrections, or upgrade to Premium for unlimited AI corrections!',
+    AppLocale.spanish: 'Has usado todas tus correcciones de hoy, incluidas las extra.\n\nVuelve mañana para más correcciones gratuitas, o actualiza a Premium para correcciones ilimitadas.',
+    AppLocale.chinese: '您今天的所有修改次数（包括额外次数）已用完。\n\n明天回来享受更多免费修改，或升级到高级版获得无限AI修改！',
+    AppLocale.korean: '오늘의 모든 교정(보너스 포함)을 사용했습니다.\n\n내일 다시 무료 교정을 이용하거나, 프리미엄으로 업그레이드하여 무제한 AI 교정을 받으세요!',
+    AppLocale.french: 'Vous avez utilisé toutes vos corrections aujourd\'hui, y compris les bonus.\n\nRevenez demain pour plus de corrections gratuites, ou passez à Premium pour des corrections IA illimitées !',
+    AppLocale.german: 'Sie haben alle Korrekturen für heute aufgebraucht, einschließlich Bonuskorrekturen.\n\nKommen Sie morgen für mehr kostenlose Korrekturen wieder, oder upgraden Sie auf Premium für unbegrenzte KI-Korrekturen!',
+    AppLocale.italian: 'Hai esaurito tutte le correzioni di oggi, incluse quelle bonus.\n\nTorna domani per altre correzioni gratuite, o passa a Premium per correzioni IA illimitate!',
+  });
+
+  String get bonusCorrectionGranted => _t({
+    AppLocale.japanese: 'ボーナス添削を獲得しました！「AI添削を実行」をタップして使用してください。',
+    AppLocale.english: 'Bonus correction granted! Tap "Run AI Correction" to use it.',
+    AppLocale.spanish: '¡Corrección extra obtenida! Toca "Ejecutar corrección IA" para usarla.',
+    AppLocale.chinese: '已获得额外修改！点击"运行AI修改"即可使用。',
+    AppLocale.korean: '보너스 교정을 받았습니다! "AI 교정 실행"을 탭하여 사용하세요.',
+    AppLocale.french: 'Correction bonus accordée ! Appuyez sur "Lancer la correction IA" pour l\'utiliser.',
+    AppLocale.german: 'Bonuskorrektur erhalten! Tippen Sie auf "KI-Korrektur starten", um sie zu nutzen.',
+    AppLocale.italian: 'Correzione bonus ottenuta! Tocca "Esegui correzione IA" per usarla.',
+  });
+
+  String failedToGrantBonus(String error) => _t({
+    AppLocale.japanese: 'ボーナスの付与に失敗しました: $error',
+    AppLocale.english: 'Failed to grant bonus: $error',
+    AppLocale.spanish: 'Error al otorgar el bono: $error',
+    AppLocale.chinese: '无法授予奖励: $error',
+    AppLocale.korean: '보너스 부여 실패: $error',
+    AppLocale.french: 'Échec de l\'attribution du bonus : $error',
+    AppLocale.german: 'Bonus konnte nicht gewährt werden: $error',
+    AppLocale.italian: 'Impossibile concedere il bonus: $error',
+  });
+
+  String get correctionLimitReached403 => _t({
+    AppLocale.japanese: '本日の添削回数の上限に達しました。明日再度お試しいただくか、広告を視聴してボーナス添削を獲得してください。',
+    AppLocale.english: 'Daily correction limit reached. Try again tomorrow or watch an ad for bonus corrections.',
+    AppLocale.spanish: 'Límite diario de correcciones alcanzado. Inténtalo mañana o mira un anuncio para correcciones extra.',
+    AppLocale.chinese: '已达每日修改上限。请明天再试或观看广告获得额外修改。',
+    AppLocale.korean: '일일 교정 한도에 도달했습니다. 내일 다시 시도하거나 광고를 시청하여 보너스 교정을 받으세요.',
+    AppLocale.french: 'Limite de corrections quotidienne atteinte. Réessayez demain ou regardez une publicité pour des corrections bonus.',
+    AppLocale.german: 'Tägliches Korrekturlimit erreicht. Versuchen Sie es morgen erneut oder schauen Sie eine Werbung für Bonuskorrekturen.',
+    AppLocale.italian: 'Limite giornaliero di correzioni raggiunto. Riprova domani o guarda un annuncio per correzioni bonus.',
+  });
+
+  String failedToUpdate(String error) => _t({
+    AppLocale.japanese: '更新に失敗しました: $error',
+    AppLocale.english: 'Failed to update: $error',
+    AppLocale.spanish: 'Error al actualizar: $error',
+    AppLocale.chinese: '更新失败: $error',
+    AppLocale.korean: '업데이트 실패: $error',
+    AppLocale.french: 'Échec de la mise à jour : $error',
+    AppLocale.german: 'Aktualisierung fehlgeschlagen: $error',
+    AppLocale.italian: 'Aggiornamento non riuscito: $error',
+  });
+
+  String failedToSave(String error) => _t({
+    AppLocale.japanese: '保存に失敗しました: $error',
+    AppLocale.english: 'Failed to save: $error',
+    AppLocale.spanish: 'Error al guardar: $error',
+    AppLocale.chinese: '保存失败: $error',
+    AppLocale.korean: '저장 실패: $error',
+    AppLocale.french: 'Échec de la sauvegarde : $error',
+    AppLocale.german: 'Speichern fehlgeschlagen: $error',
+    AppLocale.italian: 'Salvataggio non riuscito: $error',
+  });
+
+  String failedToDelete(String error) => _t({
+    AppLocale.japanese: '削除に失敗しました: $error',
+    AppLocale.english: 'Failed to delete: $error',
+    AppLocale.spanish: 'Error al eliminar: $error',
+    AppLocale.chinese: '删除失败: $error',
+    AppLocale.korean: '삭제 실패: $error',
+    AppLocale.french: 'Échec de la suppression : $error',
+    AppLocale.german: 'Löschen fehlgeschlagen: $error',
+    AppLocale.italian: 'Eliminazione non riuscita: $error',
+  });
+
+  String get analyzingHandwriting => _t({
+    AppLocale.japanese: 'AIで手書きを解析中...',
+    AppLocale.english: 'Analyzing handwriting with AI...',
+    AppLocale.spanish: 'Analizando escritura con IA...',
+    AppLocale.chinese: '正在用AI分析手写内容...',
+    AppLocale.korean: 'AI로 손글씨 분석 중...',
+    AppLocale.french: 'Analyse de l\'écriture avec l\'IA...',
+    AppLocale.german: 'Handschrift wird mit KI analysiert...',
+    AppLocale.italian: 'Analisi della scrittura con IA...',
+  });
+
+  String failedToCaptureImage(String error) => _t({
+    AppLocale.japanese: '画像の撮影に失敗しました: $error',
+    AppLocale.english: 'Failed to capture image: $error',
+    AppLocale.spanish: 'Error al capturar imagen: $error',
+    AppLocale.chinese: '拍摄失败: $error',
+    AppLocale.korean: '이미지 촬영 실패: $error',
+    AppLocale.french: 'Échec de la capture d\'image : $error',
+    AppLocale.german: 'Bildaufnahme fehlgeschlagen: $error',
+    AppLocale.italian: 'Acquisizione immagine non riuscita: $error',
+  });
+
+  String get noTextDetected => _t({
+    AppLocale.japanese: 'テキストが検出されませんでした。手書きが見えるようにしてください。',
+    AppLocale.english: 'No text detected. Make sure the handwriting is visible.',
+    AppLocale.spanish: 'No se detectó texto. Asegúrate de que la escritura sea visible.',
+    AppLocale.chinese: '未检测到文字。请确保手写内容清晰可见。',
+    AppLocale.korean: '텍스트가 감지되지 않았습니다. 손글씨가 보이는지 확인하세요.',
+    AppLocale.french: 'Aucun texte détecté. Assurez-vous que l\'écriture est visible.',
+    AppLocale.german: 'Kein Text erkannt. Stellen Sie sicher, dass die Handschrift sichtbar ist.',
+    AppLocale.italian: 'Nessun testo rilevato. Assicurati che la scrittura sia visibile.',
+  });
+
+  String get textRecognizedSuccessfully => _t({
+    AppLocale.japanese: 'テキストの認識に成功しました！',
+    AppLocale.english: 'Text recognized successfully!',
+    AppLocale.spanish: '¡Texto reconocido con éxito!',
+    AppLocale.chinese: '文字识别成功！',
+    AppLocale.korean: '텍스트 인식 성공!',
+    AppLocale.french: 'Texte reconnu avec succès !',
+    AppLocale.german: 'Text erfolgreich erkannt!',
+    AppLocale.italian: 'Testo riconosciuto con successo!',
+  });
+
+  String failedToProcessImage(String error) => _t({
+    AppLocale.japanese: '画像の処理に失敗しました: $error',
+    AppLocale.english: 'Failed to process image: $error',
+    AppLocale.spanish: 'Error al procesar imagen: $error',
+    AppLocale.chinese: '图片处理失败: $error',
+    AppLocale.korean: '이미지 처리 실패: $error',
+    AppLocale.french: 'Échec du traitement de l\'image : $error',
+    AppLocale.german: 'Bildverarbeitung fehlgeschlagen: $error',
+    AppLocale.italian: 'Elaborazione immagine non riuscita: $error',
+  });
+
+  String get pleaseEnterCompleteCode => _t({
+    AppLocale.japanese: '6桁のコードをすべて入力してください',
+    AppLocale.english: 'Please enter the complete 6-digit code',
+    AppLocale.spanish: 'Por favor, introduce el código completo de 6 dígitos',
+    AppLocale.chinese: '请输入完整的6位验证码',
+    AppLocale.korean: '6자리 코드를 모두 입력해 주세요',
+    AppLocale.french: 'Veuillez saisir le code complet à 6 chiffres',
+    AppLocale.german: 'Bitte geben Sie den vollständigen 6-stelligen Code ein',
+    AppLocale.italian: 'Inserisci il codice completo a 6 cifre',
+  });
+
+  String get emailVerifiedPleaseSignIn => _t({
+    AppLocale.japanese: 'メールアドレスが確認されました！ログインしてください。',
+    AppLocale.english: 'Email verified! Please sign in.',
+    AppLocale.spanish: '¡Correo verificado! Por favor, inicia sesión.',
+    AppLocale.chinese: '邮箱验证成功！请登录。',
+    AppLocale.korean: '이메일 인증 완료! 로그인해 주세요.',
+    AppLocale.french: 'E-mail vérifié ! Veuillez vous connecter.',
+    AppLocale.german: 'E-Mail verifiziert! Bitte melden Sie sich an.',
+    AppLocale.italian: 'Email verificata! Accedi.',
+  });
+
+  String get verificationCodeSent => _t({
+    AppLocale.japanese: '確認コードを送信しました！',
+    AppLocale.english: 'Verification code sent!',
+    AppLocale.spanish: '¡Código de verificación enviado!',
+    AppLocale.chinese: '验证码已发送！',
+    AppLocale.korean: '인증 코드가 전송되었습니다!',
+    AppLocale.french: 'Code de vérification envoyé !',
+    AppLocale.german: 'Bestätigungscode gesendet!',
+    AppLocale.italian: 'Codice di verifica inviato!',
+  });
+
+  String get signUpSuccessPleaseLogIn => _t({
+    AppLocale.japanese: '登録が完了しました！ログインしてください。',
+    AppLocale.english: 'Successfully signed up! Please log in.',
+    AppLocale.spanish: '¡Registro exitoso! Por favor, inicia sesión.',
+    AppLocale.chinese: '注册成功！请登录。',
+    AppLocale.korean: '가입 성공! 로그인해 주세요.',
+    AppLocale.french: 'Inscription réussie ! Veuillez vous connecter.',
+    AppLocale.german: 'Erfolgreich registriert! Bitte melden Sie sich an.',
+    AppLocale.italian: 'Registrazione completata! Accedi.',
+  });
+
+  String get checkEmailForVerificationCode => _t({
+    AppLocale.japanese: 'メールに届いた確認コードをご確認ください',
+    AppLocale.english: 'Please check your email for verification code',
+    AppLocale.spanish: 'Revisa tu correo para el código de verificación',
+    AppLocale.chinese: '请查看邮箱中的验证码',
+    AppLocale.korean: '이메일에서 인증 코드를 확인해 주세요',
+    AppLocale.french: 'Veuillez vérifier votre e-mail pour le code de vérification',
+    AppLocale.german: 'Bitte überprüfen Sie Ihre E-Mail auf den Bestätigungscode',
+    AppLocale.italian: 'Controlla la tua email per il codice di verifica',
+  });
+
+  String improveWriting(String languageName) => _t({
+    AppLocale.japanese: '$languageNameのライティングを上達させよう',
+    AppLocale.english: 'Improve your $languageName writing',
+    AppLocale.spanish: 'Mejora tu escritura en $languageName',
+    AppLocale.chinese: '提升你的${languageName}写作能力',
+    AppLocale.korean: '$languageName 작문 실력을 향상시키세요',
+    AppLocale.french: 'Améliorez votre écriture en $languageName',
+    AppLocale.german: 'Verbessern Sie Ihr $languageName-Schreiben',
+    AppLocale.italian: 'Migliora la tua scrittura in $languageName',
+  });
+
+  String get logIn => _t({
+    AppLocale.japanese: 'ログイン',
+    AppLocale.english: 'Log In',
+    AppLocale.spanish: 'Iniciar sesión',
+    AppLocale.chinese: '登录',
+    AppLocale.korean: '로그인',
+    AppLocale.french: 'Se connecter',
+    AppLocale.german: 'Anmelden',
+    AppLocale.italian: 'Accedi',
+  });
+
+  String get signUp => _t({
+    AppLocale.japanese: '新規登録',
+    AppLocale.english: 'Sign Up',
+    AppLocale.spanish: 'Registrarse',
+    AppLocale.chinese: '注册',
+    AppLocale.korean: '가입',
+    AppLocale.french: 'S\'inscrire',
+    AppLocale.german: 'Registrieren',
+    AppLocale.italian: 'Registrati',
+  });
+
+  String get verifyEmail => _t({
+    AppLocale.japanese: 'メール認証',
+    AppLocale.english: 'Verify Email',
+    AppLocale.spanish: 'Verificar correo',
+    AppLocale.chinese: '验证邮箱',
+    AppLocale.korean: '이메일 인증',
+    AppLocale.french: 'Vérifier l\'e-mail',
+    AppLocale.german: 'E-Mail verifizieren',
+    AppLocale.italian: 'Verifica email',
+  });
+
+  String get resend => _t({
+    AppLocale.japanese: '再送信',
+    AppLocale.english: 'Resend',
+    AppLocale.spanish: 'Reenviar',
+    AppLocale.chinese: '重新发送',
+    AppLocale.korean: '재전송',
+    AppLocale.french: 'Renvoyer',
+    AppLocale.german: 'Erneut senden',
+    AppLocale.italian: 'Reinvia',
+  });
+
+  String get openSettings => _t({
+    AppLocale.japanese: '設定を開く',
+    AppLocale.english: 'Open Settings',
+    AppLocale.spanish: 'Abrir ajustes',
+    AppLocale.chinese: '打开设置',
+    AppLocale.korean: '설정 열기',
+    AppLocale.french: 'Ouvrir les paramètres',
+    AppLocale.german: 'Einstellungen öffnen',
+    AppLocale.italian: 'Apri impostazioni',
+  });
+
+  String get tryAgain => _t({
+    AppLocale.japanese: 'もう一度',
+    AppLocale.english: 'Try Again',
+    AppLocale.spanish: 'Intentar de nuevo',
+    AppLocale.chinese: '重试',
+    AppLocale.korean: '다시 시도',
+    AppLocale.french: 'Réessayer',
+    AppLocale.german: 'Erneut versuchen',
+    AppLocale.italian: 'Riprova',
   });
 }
 
