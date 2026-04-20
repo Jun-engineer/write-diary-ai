@@ -8,6 +8,7 @@ import '../../../../core/providers/correction_mode_provider.dart';
 import '../../../../core/providers/user_provider.dart';
 import 'terms_of_service_screen.dart';
 import 'privacy_policy_screen.dart';
+import 'premium_screen.dart';
 
 /// Available target languages (languages to learn)
 const targetLanguages = ['english', 'spanish', 'chinese', 'japanese', 'korean', 'french', 'german', 'italian'];
@@ -394,8 +395,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     trailing: plan != 'premium'
                         ? TextButton(
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(s.comingSoon)),
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const PremiumScreen(),
+                                ),
                               );
                             },
                             child: Text(s.upgrade),

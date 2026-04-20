@@ -206,4 +206,16 @@ class ApiService {
   Future<void> deleteAccount() async {
     await _dio.delete('/users/me');
   }
+
+  // ==================== Subscription APIs ====================
+
+  /// Sync subscription status with backend (RevenueCat handles verification)
+  Future<Map<String, dynamic>> syncSubscriptionStatus({
+    required bool isPremium,
+  }) async {
+    final response = await _dio.post('/subscriptions/sync', data: {
+      'isPremium': isPremium,
+    });
+    return response.data;
+  }
 }

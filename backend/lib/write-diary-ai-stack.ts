@@ -332,6 +332,14 @@ export class WriteDiaryAiStack extends cdk.Stack {
       handler: 'handler',
     });
 
+    // Subscription Sync Handler
+    const syncSubscriptionHandler = new NodejsFunction(this, 'SyncSubscriptionHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-SyncSubscription',
+      entry: path.join(__dirname, '../lambda/handlers/subscriptions/verify.ts'),
+      handler: 'handler',
+    });
+
     // Grant DynamoDB permissions
     usersTable.grantReadData(createDiaryHandler);
     usersTable.grantReadData(correctDiaryHandler);
@@ -403,6 +411,9 @@ export class WriteDiaryAiStack extends cdk.Stack {
     // Grant permissions for user profile handlers
     usersTable.grantReadData(getUserProfileHandler);
     usersTable.grantReadWriteData(updateUserProfileHandler);
+
+    // Grant permissions for subscription verification handler
+    usersTable.grantReadWriteData(syncSubscriptionHandler);
 
     // Grant S3 permissions for image upload
     imagesBucket.grantReadWrite(createDiaryHandler);
@@ -486,6 +497,11 @@ export class WriteDiaryAiStack extends cdk.Stack {
     usersMe.addMethod('GET', new apigateway.LambdaIntegration(getUserProfileHandler), authorizationOptions);
     usersMe.addMethod('PUT', new apigateway.LambdaIntegration(updateUserProfileHandler), authorizationOptions);
     usersMe.addMethod('DELETE', new apigateway.LambdaIntegration(deleteAccountHandler), authorizationOptions);
+
+    // /subscriptions endpoints
+    const subscriptions = api.root.addResource('subscriptions');
+    const subscriptionSync = subscriptions.addResource('sync');
+    subscriptionSync.addMethod('POST', new apigateway.LambdaIntegration(syncSubscriptionHandler), authorizationOptions);
 
     // ========================================
     // Outputs

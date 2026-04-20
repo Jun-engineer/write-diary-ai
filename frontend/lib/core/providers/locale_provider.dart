@@ -762,6 +762,293 @@ class AppStrings {
     AppLocale.german: 'UNBEGRENZT',
     AppLocale.italian: 'ILLIMITATO',
   });
+
+  // Premium Plan
+  String get premiumPlan => _t({
+    AppLocale.japanese: 'プレミアムプラン',
+    AppLocale.english: 'Premium Plan',
+    AppLocale.spanish: 'Plan Premium',
+    AppLocale.chinese: '高级计划',
+    AppLocale.korean: '프리미엄 플랜',
+    AppLocale.french: 'Plan Premium',
+    AppLocale.german: 'Premium-Plan',
+    AppLocale.italian: 'Piano Premium',
+  });
+
+  String get premiumLabel => _t({
+    AppLocale.japanese: 'プレミアム',
+    AppLocale.english: 'Premium',
+    AppLocale.spanish: 'Premium',
+    AppLocale.chinese: '高级',
+    AppLocale.korean: '프리미엄',
+    AppLocale.french: 'Premium',
+    AppLocale.german: 'Premium',
+    AppLocale.italian: 'Premium',
+  });
+
+  String get premiumBenefits => _t({
+    AppLocale.japanese: 'プレミアム特典',
+    AppLocale.english: 'Premium Benefits',
+    AppLocale.spanish: 'Beneficios Premium',
+    AppLocale.chinese: '高级特权',
+    AppLocale.korean: '프리미엄 혜택',
+    AppLocale.french: 'Avantages Premium',
+    AppLocale.german: 'Premium-Vorteile',
+    AppLocale.italian: 'Vantaggi Premium',
+  });
+
+  String get unlimitedCorrections => _t({
+    AppLocale.japanese: '無制限のAI添削',
+    AppLocale.english: 'Unlimited AI Corrections',
+    AppLocale.spanish: 'Correcciones IA ilimitadas',
+    AppLocale.chinese: '无限AI批改',
+    AppLocale.korean: '무제한 AI 첨삭',
+    AppLocale.french: 'Corrections IA illimitées',
+    AppLocale.german: 'Unbegrenzte KI-Korrekturen',
+    AppLocale.italian: 'Correzioni IA illimitate',
+  });
+
+  String get unlimitedCorrectionsDesc => _t({
+    AppLocale.japanese: '1日の添削回数制限なし',
+    AppLocale.english: 'No daily correction limit',
+    AppLocale.spanish: 'Sin límite diario de correcciones',
+    AppLocale.chinese: '每日批改无数量限制',
+    AppLocale.korean: '일일 첨삭 횟수 제한 없음',
+    AppLocale.french: 'Pas de limite de corrections quotidiennes',
+    AppLocale.german: 'Kein tägliches Korrekturlimit',
+    AppLocale.italian: 'Nessun limite giornaliero di correzioni',
+  });
+
+  String get unlimitedScans => _t({
+    AppLocale.japanese: '無制限のスキャン',
+    AppLocale.english: 'Unlimited Scans',
+    AppLocale.spanish: 'Escaneos ilimitados',
+    AppLocale.chinese: '无限扫描',
+    AppLocale.korean: '무제한 스캔',
+    AppLocale.french: 'Scans illimités',
+    AppLocale.german: 'Unbegrenzte Scans',
+    AppLocale.italian: 'Scansioni illimitate',
+  });
+
+  String get unlimitedScansDesc => _t({
+    AppLocale.japanese: '1日のスキャン回数制限なし',
+    AppLocale.english: 'No daily scan limit',
+    AppLocale.spanish: 'Sin límite diario de escaneos',
+    AppLocale.chinese: '每日扫描无数量限制',
+    AppLocale.korean: '일일 스캔 횟수 제한 없음',
+    AppLocale.french: 'Pas de limite de scans quotidiens',
+    AppLocale.german: 'Kein tägliches Scanlimit',
+    AppLocale.italian: 'Nessun limite giornaliero di scansioni',
+  });
+
+  String get noAds => _t({
+    AppLocale.japanese: '広告なし',
+    AppLocale.english: 'No Ads',
+    AppLocale.spanish: 'Sin anuncios',
+    AppLocale.chinese: '无广告',
+    AppLocale.korean: '광고 없음',
+    AppLocale.french: 'Sans publicité',
+    AppLocale.german: 'Keine Werbung',
+    AppLocale.italian: 'Senza pubblicità',
+  });
+
+  String get noAdsDesc => _t({
+    AppLocale.japanese: '広告表示なしの快適な体験',
+    AppLocale.english: 'Enjoy an ad-free experience',
+    AppLocale.spanish: 'Disfruta de una experiencia sin anuncios',
+    AppLocale.chinese: '享受无广告体验',
+    AppLocale.korean: '광고 없는 쾌적한 경험',
+    AppLocale.french: "Profitez d'une expérience sans publicité",
+    AppLocale.german: 'Genießen Sie ein werbefreies Erlebnis',
+    AppLocale.italian: "Goditi un'esperienza senza pubblicità",
+  });
+
+  String get subscribePremium => _t({
+    AppLocale.japanese: 'プレミアムに登録',
+    AppLocale.english: 'Subscribe to Premium',
+    AppLocale.spanish: 'Suscribirse a Premium',
+    AppLocale.chinese: '订阅高级版',
+    AppLocale.korean: '프리미엄 구독',
+    AppLocale.french: "S'abonner à Premium",
+    AppLocale.german: 'Premium abonnieren',
+    AppLocale.italian: 'Abbonati a Premium',
+  });
+
+  String get restorePurchases => _t({
+    AppLocale.japanese: '購入を復元',
+    AppLocale.english: 'Restore Purchases',
+    AppLocale.spanish: 'Restaurar compras',
+    AppLocale.chinese: '恢复购买',
+    AppLocale.korean: '구매 복원',
+    AppLocale.french: 'Restaurer les achats',
+    AppLocale.german: 'Käufe wiederherstellen',
+    AppLocale.italian: 'Ripristina acquisti',
+  });
+
+  String get restoreCompleted => _t({
+    AppLocale.japanese: '購入の復元が完了しました',
+    AppLocale.english: 'Purchases restored successfully',
+    AppLocale.spanish: 'Compras restauradas con éxito',
+    AppLocale.chinese: '购买恢复成功',
+    AppLocale.korean: '구매 복원이 완료되었습니다',
+    AppLocale.french: 'Achats restaurés avec succès',
+    AppLocale.german: 'Käufe erfolgreich wiederhergestellt',
+    AppLocale.italian: 'Acquisti ripristinati con successo',
+  });
+
+  String get alreadyPremium => _t({
+    AppLocale.japanese: 'プレミアム会員です',
+    AppLocale.english: "You're a Premium member",
+    AppLocale.spanish: 'Eres miembro Premium',
+    AppLocale.chinese: '您是高级会员',
+    AppLocale.korean: '프리미엄 회원입니다',
+    AppLocale.french: 'Vous êtes membre Premium',
+    AppLocale.german: 'Sie sind Premium-Mitglied',
+    AppLocale.italian: 'Sei un membro Premium',
+  });
+
+  String get planComparison => _t({
+    AppLocale.japanese: 'プラン比較',
+    AppLocale.english: 'Plan Comparison',
+    AppLocale.spanish: 'Comparación de planes',
+    AppLocale.chinese: '计划对比',
+    AppLocale.korean: '플랜 비교',
+    AppLocale.french: 'Comparaison des plans',
+    AppLocale.german: 'Planvergleich',
+    AppLocale.italian: 'Confronto piani',
+  });
+
+  String get correctionsLabel => _t({
+    AppLocale.japanese: 'AI添削',
+    AppLocale.english: 'Corrections',
+    AppLocale.spanish: 'Correcciones',
+    AppLocale.chinese: '批改',
+    AppLocale.korean: '첨삭',
+    AppLocale.french: 'Corrections',
+    AppLocale.german: 'Korrekturen',
+    AppLocale.italian: 'Correzioni',
+  });
+
+  String get scans => _t({
+    AppLocale.japanese: 'スキャン',
+    AppLocale.english: 'Scans',
+    AppLocale.spanish: 'Escaneos',
+    AppLocale.chinese: '扫描',
+    AppLocale.korean: '스캔',
+    AppLocale.french: 'Scans',
+    AppLocale.german: 'Scans',
+    AppLocale.italian: 'Scansioni',
+  });
+
+  String get ads => _t({
+    AppLocale.japanese: '広告',
+    AppLocale.english: 'Ads',
+    AppLocale.spanish: 'Anuncios',
+    AppLocale.chinese: '广告',
+    AppLocale.korean: '광고',
+    AppLocale.french: 'Publicités',
+    AppLocale.german: 'Werbung',
+    AppLocale.italian: 'Pubblicità',
+  });
+
+  String get yes => _t({
+    AppLocale.japanese: 'あり',
+    AppLocale.english: 'Yes',
+    AppLocale.spanish: 'Sí',
+    AppLocale.chinese: '有',
+    AppLocale.korean: '있음',
+    AppLocale.french: 'Oui',
+    AppLocale.german: 'Ja',
+    AppLocale.italian: 'Sì',
+  });
+
+  String get no => _t({
+    AppLocale.japanese: 'なし',
+    AppLocale.english: 'No',
+    AppLocale.spanish: 'No',
+    AppLocale.chinese: '无',
+    AppLocale.korean: '없음',
+    AppLocale.french: 'Non',
+    AppLocale.german: 'Nein',
+    AppLocale.italian: 'No',
+  });
+
+  String get month => _t({
+    AppLocale.japanese: '月',
+    AppLocale.english: 'month',
+    AppLocale.spanish: 'mes',
+    AppLocale.chinese: '月',
+    AppLocale.korean: '월',
+    AppLocale.french: 'mois',
+    AppLocale.german: 'Monat',
+    AppLocale.italian: 'mese',
+  });
+
+  String get day => _t({
+    AppLocale.japanese: '日',
+    AppLocale.english: 'day',
+    AppLocale.spanish: 'día',
+    AppLocale.chinese: '天',
+    AppLocale.korean: '일',
+    AppLocale.french: 'jour',
+    AppLocale.german: 'Tag',
+    AppLocale.italian: 'giorno',
+  });
+
+  String get subscriptionTerms => _t({
+    AppLocale.japanese: 'サブスクリプションは自動更新されます。次の請求日の24時間前までにキャンセルしない限り、自動的に更新されます。設定アプリからいつでもキャンセルできます。',
+    AppLocale.english: 'Subscription auto-renews. Cancel at least 24 hours before the next billing date. You can cancel anytime in Settings.',
+    AppLocale.spanish: 'La suscripción se renueva automáticamente. Cancela al menos 24 horas antes de la próxima fecha de facturación. Puedes cancelar en cualquier momento en Configuración.',
+    AppLocale.chinese: '订阅自动续订。请在下一个计费日期前至少24小时取消。您可以随时在设置中取消。',
+    AppLocale.korean: '구독은 자동 갱신됩니다. 다음 결제일 24시간 전에 취소하세요. 설정에서 언제든지 취소할 수 있습니다.',
+    AppLocale.french: "L'abonnement se renouvelle automatiquement. Annulez au moins 24 heures avant la prochaine date de facturation. Vous pouvez annuler à tout moment dans les Réglages.",
+    AppLocale.german: 'Das Abo verlängert sich automatisch. Kündigen Sie mindestens 24 Stunden vor dem nächsten Abrechnungsdatum. Sie können jederzeit in den Einstellungen kündigen.',
+    AppLocale.italian: "L'abbonamento si rinnova automaticamente. Annulla almeno 24 ore prima della prossima data di fatturazione. Puoi annullare in qualsiasi momento nelle Impostazioni.",
+  });
+
+  String get choosePlan => _t({
+    AppLocale.japanese: 'プランを選択',
+    AppLocale.english: 'Choose Your Plan',
+    AppLocale.spanish: 'Elige tu plan',
+    AppLocale.chinese: '选择您的计划',
+    AppLocale.korean: '플랜 선택',
+    AppLocale.french: 'Choisissez votre plan',
+    AppLocale.german: 'Wählen Sie Ihren Plan',
+    AppLocale.italian: 'Scegli il tuo piano',
+  });
+
+  String get yearlyPlan => _t({
+    AppLocale.japanese: '年間プラン',
+    AppLocale.english: 'Yearly',
+    AppLocale.spanish: 'Anual',
+    AppLocale.chinese: '年度计划',
+    AppLocale.korean: '연간 플랜',
+    AppLocale.french: 'Annuel',
+    AppLocale.german: 'Jährlich',
+    AppLocale.italian: 'Annuale',
+  });
+
+  String get monthlyPlan => _t({
+    AppLocale.japanese: '月額プラン',
+    AppLocale.english: 'Monthly',
+    AppLocale.spanish: 'Mensual',
+    AppLocale.chinese: '月度计划',
+    AppLocale.korean: '월간 플랜',
+    AppLocale.french: 'Mensuel',
+    AppLocale.german: 'Monatlich',
+    AppLocale.italian: 'Mensile',
+  });
+
+  String get save50 => _t({
+    AppLocale.japanese: '50%お得',
+    AppLocale.english: 'Save 50%',
+    AppLocale.spanish: 'Ahorra 50%',
+    AppLocale.chinese: '节省50%',
+    AppLocale.korean: '50% 할인',
+    AppLocale.french: '-50%',
+    AppLocale.german: '50% sparen',
+    AppLocale.italian: 'Risparmia 50%',
+  });
   
   // Diary Detail Screen
   String get originalDiary => _t({
