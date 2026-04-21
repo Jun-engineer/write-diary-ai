@@ -19,6 +19,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     // Get query parameters
     const limit = parseInt(event.queryStringParameters?.limit || '50', 10);
     const tag = event.queryStringParameters?.tag;
+    const dueOnly = event.queryStringParameters?.dueOnly === 'true';
+    const now = Date.now();
 
     // Query review cards by userId
     const queryParams: any = {
@@ -40,7 +42,12 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     const result = await docClient.send(new QueryCommand(queryParams));
 
-    const cards = result.Items as ReviewCard[] || [];
+    let cards = result.Items as ReviewCard[] || [];
+
+    // Filter to only due cards if requested
+    if (dueOnly) {
+      cards = cards.filter((card) => (card.dueAt ?? 0) <= now);
+    }
 
     return success({
       cards,

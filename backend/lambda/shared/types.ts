@@ -8,6 +8,9 @@ export interface User {
   email: string;
   displayName?: string;
   plan: 'free' | 'premium';
+  subscriptionStatus?: 'active' | 'grace_period' | 'billing_issue' | 'canceled' | 'expired';
+  subscriptionProductId?: string;
+  subscriptionExpiresAt?: number; // Unix ms
   targetLanguage?: TargetLanguage; // Language user is learning (default: english)
   nativeLanguage?: NativeLanguage; // User's native language for explanations (default: japanese)
   createdAt: number;
@@ -47,7 +50,15 @@ export interface ReviewCard {
   context: string;
   tags: string[];
   createdAt: number;
+  // Spaced repetition fields (SM-2 algorithm)
+  interval: number;        // Days until next review (default: 1)
+  easeFactor: number;      // Difficulty multiplier (default: 2.5, min: 1.3)
+  dueAt: number;           // Timestamp (ms) when card is due for review
+  lastReviewedAt?: number; // Timestamp of last review
+  reviewCount: number;     // Total number of reviews
 }
+
+export type ReviewRating = 'again' | 'hard' | 'good' | 'easy';
 
 // Scan Usage types
 export interface ScanUsage {

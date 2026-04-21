@@ -340,6 +340,26 @@ export class WriteDiaryAiStack extends cdk.Stack {
       handler: 'handler',
     });
 
+    // RevenueCat Webhook Handler (PUBLIC — no Cognito auth, secured by webhook secret header)
+    const revenueCatWebhookHandler = new NodejsFunction(this, 'RevenueCatWebhookHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-RevenueCatWebhook',
+      entry: path.join(__dirname, '../lambda/handlers/subscriptions/webhook.ts'),
+      handler: 'handler',
+      environment: {
+        ...lambdaEnvironment,
+        REVENUECAT_WEBHOOK_SECRET: process.env.REVENUECAT_WEBHOOK_SECRET || '',
+      },
+    });
+
+    // Review Card SRS Handler
+    const reviewCardSrsHandler = new NodejsFunction(this, 'ReviewCardSrsHandler', {
+      ...commonLambdaProps,
+      functionName: 'WriteDiaryAi-ReviewCardSrs',
+      entry: path.join(__dirname, '../lambda/handlers/review-cards/review.ts'),
+      handler: 'handler',
+    });
+
     // Grant DynamoDB permissions
     usersTable.grantReadData(createDiaryHandler);
     usersTable.grantReadData(correctDiaryHandler);
@@ -414,6 +434,12 @@ export class WriteDiaryAiStack extends cdk.Stack {
 
     // Grant permissions for subscription verification handler
     usersTable.grantReadWriteData(syncSubscriptionHandler);
+
+    // Grant permissions for RevenueCat webhook handler (public — updates user plan)
+    usersTable.grantReadWriteData(revenueCatWebhookHandler);
+
+    // Grant permissions for review card SRS handler
+    reviewCardsTable.grantReadWriteData(reviewCardSrsHandler);
 
     // Grant S3 permissions for image upload
     imagesBucket.grantReadWrite(createDiaryHandler);
@@ -502,6 +528,14 @@ export class WriteDiaryAiStack extends cdk.Stack {
     const subscriptions = api.root.addResource('subscriptions');
     const subscriptionSync = subscriptions.addResource('sync');
     subscriptionSync.addMethod('POST', new apigateway.LambdaIntegration(syncSubscriptionHandler), authorizationOptions);
+
+    // /subscriptions/webhook - PUBLIC (RevenueCat calls this; secured by webhook secret in header)
+    const subscriptionWebhook = subscriptions.addResource('webhook');
+    subscriptionWebhook.addMethod('POST', new apigateway.LambdaIntegration(revenueCatWebhookHandler));
+
+    // /review-cards/{cardId}/review - SRS rating endpoint
+    const reviewCardRating = reviewCard.addResource('review');
+    reviewCardRating.addMethod('PUT', new apigateway.LambdaIntegration(reviewCardSrsHandler), authorizationOptions);
 
     // ========================================
     // Outputs

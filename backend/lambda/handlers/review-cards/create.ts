@@ -84,6 +84,11 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
         context,
         tags: [correction.type],
         createdAt: timestamp,
+        // Spaced repetition initial values
+        interval: 1,
+        easeFactor: 2.5,
+        dueAt: timestamp,
+        reviewCount: 0,
       };
 
       await docClient.send(new PutCommand({

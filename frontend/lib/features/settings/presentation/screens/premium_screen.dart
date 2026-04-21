@@ -4,6 +4,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../../core/services/subscription_service.dart';
 import '../../../../core/providers/locale_provider.dart';
 import '../../../../core/providers/user_provider.dart';
+import 'package:intl/intl.dart';
 
 class PremiumScreen extends ConsumerStatefulWidget {
   const PremiumScreen({super.key});
@@ -19,8 +20,18 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      ref.read(subscriptionServiceProvider).initialize();
+    // Subscription service is initialized globally at app start.
+    // Just load offerings if not already loaded.
+    Future.microtask(() async {
+      final service = ref.read(subscriptionServiceProvider);
+      await service.refreshSubscriptionStatus();
+      // Paywall analytics: log view event
+      debugPrint('[Analytics] paywall_view: ${DateTime.now().toIso8601String()}');
+      try {
+        await Purchases.setAttributes({
+          'last_paywall_view': DateTime.now().toIso8601String(),
+        });
+      } catch (_) {}
     });
   }
 
@@ -42,12 +53,23 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     final package = _isYearlySelected ? _yearlyPackage : _monthlyPackage;
     if (package == null) return;
 
+    // Paywall analytics: log purchase start
+    debugPrint('[Analytics] paywall_purchase_start: ${package.identifier} at ${DateTime.now().toIso8601String()}');
+    try {
+      await Purchases.setAttributes({
+        'last_purchase_attempt': package.identifier,
+        'last_purchase_attempt_at': DateTime.now().toIso8601String(),
+      });
+    } catch (_) {}
+
     setState(() => _isLoading = true);
 
     try {
       final service = ref.read(subscriptionServiceProvider);
-      await service.purchasePackage(package);
+      final success = await service.purchasePackage(package);
+      debugPrint('[Analytics] paywall_purchase_${success ? "success" : "cancelled"}: ${package.identifier}');
     } catch (e) {
+      debugPrint('[Analytics] paywall_purchase_error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
@@ -87,6 +109,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     final s = ref.watch(stringsProvider);
     final isPremium = ref.watch(isPremiumProvider);
     final subscriptionStatus = ref.watch(subscriptionStatusProvider);
+    final subscriptionDetail = ref.watch(subscriptionDetailProvider);
     final packages = ref.watch(availablePackagesProvider);
     final theme = Theme.of(context);
 
@@ -204,26 +227,8 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                   child: Text(s.restorePurchases),
                 ),
               ] else ...[
-                // Already premium
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.shade200),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green.shade700),
-                      const SizedBox(width: 8),
-                      Text(
-                        s.alreadyPremium,
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green.shade700),
-                      ),
-                    ],
-                  ),
-                ),
+                // Already premium — show detailed subscription status
+                _buildSubscriptionStatusCard(s, subscriptionDetail, theme),
               ],
 
               const SizedBox(height: 24),
@@ -244,6 +249,81 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionStatusCard(AppStrings s, SubscriptionDetail detail, ThemeData theme) {
+    // Determine status color + label + icon
+    Color bgColor;
+    Color borderColor;
+    Color textColor;
+    IconData statusIcon;
+    String statusLabel;
+
+    if (detail.hasBillingIssue) {
+      bgColor = Colors.red.shade50;
+      borderColor = Colors.red.shade300;
+      textColor = Colors.red.shade800;
+      statusIcon = Icons.credit_card_off;
+      statusLabel = s.subscriptionBillingIssue;
+    } else if (detail.isCanceled) {
+      bgColor = Colors.orange.shade50;
+      borderColor = Colors.orange.shade300;
+      textColor = Colors.orange.shade800;
+      statusIcon = Icons.cancel_outlined;
+      statusLabel = s.subscriptionCanceling;
+    } else {
+      bgColor = Colors.green.shade50;
+      borderColor = Colors.green.shade200;
+      textColor = Colors.green.shade700;
+      statusIcon = Icons.check_circle;
+      statusLabel = s.subscriptionActive;
+    }
+
+    final expiryString = detail.expiresAt != null
+        ? DateFormat.yMMMd().format(detail.expiresAt!)
+        : null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(statusIcon, color: textColor),
+              const SizedBox(width: 8),
+              Text(statusLabel, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
+            ],
+          ),
+          if (expiryString != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              detail.isCanceled || detail.hasBillingIssue
+                  ? s.subscriptionAccessUntil(expiryString)
+                  : s.subscriptionRenewsOn(expiryString),
+              style: TextStyle(color: textColor.withValues(alpha: 0.8), fontSize: 13),
+            ),
+          ],
+          if (detail.hasBillingIssue) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                // Open App Store subscription management
+                debugPrint('[Analytics] manage_subscription_tapped');
+              },
+              icon: const Icon(Icons.open_in_new, size: 16),
+              label: Text(s.updatePaymentMethod),
+              style: OutlinedButton.styleFrom(foregroundColor: textColor, side: BorderSide(color: borderColor)),
+            ),
+          ],
+        ],
       ),
     );
   }

@@ -2487,6 +2487,276 @@ class AppStrings {
     AppLocale.german: 'Erneut versuchen',
     AppLocale.italian: 'Riprova',
   });
+
+  // --- Camera Permission strings ---
+
+  String get cameraPermissionRequired => _t({
+    AppLocale.japanese: '日記をスキャンするにはカメラのアクセス許可が必要です。',
+    AppLocale.english: 'Camera permission is required to scan your diary.',
+    AppLocale.spanish: 'Se requiere permiso de cámara para escanear tu diario.',
+    AppLocale.chinese: '扫描日记需要相机权限。',
+    AppLocale.korean: '일기를 스캔하려면 카메라 권한이 필요합니다.',
+    AppLocale.french: 'L\'autorisation de la caméra est requise pour scanner votre journal.',
+    AppLocale.german: 'Kamerazugriff erforderlich, um Ihr Tagebuch zu scannen.',
+    AppLocale.italian: 'L\'autorizzazione della fotocamera è necessaria per scansionare il diario.',
+  });
+
+  String get cameraPermissionPermanentlyDenied => _t({
+    AppLocale.japanese: 'カメラへのアクセスが拒否されています。設定からカメラを有効にしてください。',
+    AppLocale.english: 'Camera permission is permanently denied.\nPlease enable it in Settings.',
+    AppLocale.spanish: 'Permiso de cámara denegado permanentemente.\nActívalo en Configuración.',
+    AppLocale.chinese: '相机权限被永久拒绝。\n请在设置中启用它。',
+    AppLocale.korean: '카메라 권한이 영구적으로 거부되었습니다.\n설정에서 활성화해 주세요.',
+    AppLocale.french: 'Autorisation caméra refusée définitivement.\nActivez-la dans les Paramètres.',
+    AppLocale.german: 'Kamerazugriff dauerhaft verweigert.\nBitte in den Einstellungen aktivieren.',
+    AppLocale.italian: 'Autorizzazione fotocamera negata definitivamente.\nAbilitala nelle Impostazioni.',
+  });
+
+  String get noCameraFound => _t({
+    AppLocale.japanese: 'このデバイスにはカメラが見つかりません。',
+    AppLocale.english: 'No camera found on this device.',
+    AppLocale.spanish: 'No se encontró cámara en este dispositivo.',
+    AppLocale.chinese: '此设备上未找到相机。',
+    AppLocale.korean: '이 기기에서 카메라를 찾을 수 없습니다.',
+    AppLocale.french: 'Aucune caméra trouvée sur cet appareil.',
+    AppLocale.german: 'Keine Kamera auf diesem Gerät gefunden.',
+    AppLocale.italian: 'Nessuna fotocamera trovata su questo dispositivo.',
+  });
+
+  String cameraError(String desc) => _t({
+    AppLocale.japanese: 'カメラエラー: $desc',
+    AppLocale.english: 'Camera error: $desc',
+    AppLocale.spanish: 'Error de cámara: $desc',
+    AppLocale.chinese: '相机错误：$desc',
+    AppLocale.korean: '카메라 오류: $desc',
+    AppLocale.french: 'Erreur caméra : $desc',
+    AppLocale.german: 'Kamerafehler: $desc',
+    AppLocale.italian: 'Errore fotocamera: $desc',
+  });
+
+  // --- SRS (Spaced Repetition) strings ---
+
+  String get srAgain => _t({
+    AppLocale.japanese: 'もう一度',
+    AppLocale.english: 'Again',
+    AppLocale.spanish: 'Otra vez',
+    AppLocale.chinese: '再来一次',
+    AppLocale.korean: '다시',
+    AppLocale.french: 'Encore',
+    AppLocale.german: 'Nochmal',
+    AppLocale.italian: 'Ancora',
+  });
+
+  String get srHard => _t({
+    AppLocale.japanese: '難しい',
+    AppLocale.english: 'Hard',
+    AppLocale.spanish: 'Difícil',
+    AppLocale.chinese: '困难',
+    AppLocale.korean: '어려움',
+    AppLocale.french: 'Difficile',
+    AppLocale.german: 'Schwer',
+    AppLocale.italian: 'Difficile',
+  });
+
+  String get srGood => _t({
+    AppLocale.japanese: '良い',
+    AppLocale.english: 'Good',
+    AppLocale.spanish: 'Bien',
+    AppLocale.chinese: '良好',
+    AppLocale.korean: '좋음',
+    AppLocale.french: 'Bien',
+    AppLocale.german: 'Gut',
+    AppLocale.italian: 'Bene',
+  });
+
+  String get srEasy => _t({
+    AppLocale.japanese: '簡単',
+    AppLocale.english: 'Easy',
+    AppLocale.spanish: 'Fácil',
+    AppLocale.chinese: '简单',
+    AppLocale.korean: '쉬움',
+    AppLocale.french: 'Facile',
+    AppLocale.german: 'Einfach',
+    AppLocale.italian: 'Facile',
+  });
+
+  String get allCaughtUp => _t({
+    AppLocale.japanese: '復習完了！',
+    AppLocale.english: 'All Caught Up!',
+    AppLocale.spanish: '¡Todo al día!',
+    AppLocale.chinese: '全部复习完毕！',
+    AppLocale.korean: '모두 복습했어요!',
+    AppLocale.french: 'Tout est à jour !',
+    AppLocale.german: 'Alles erledigt!',
+    AppLocale.italian: 'Tutto in pari!',
+  });
+
+  String get allCaughtUpDesc => _t({
+    AppLocale.japanese: '今日の復習カードはすべて完了しました。また後でチェックしましょう！',
+    AppLocale.english: 'You\'ve reviewed all due cards for today. Check back later!',
+    AppLocale.spanish: 'Has repasado todas las tarjetas programadas para hoy. ¡Vuelve más tarde!',
+    AppLocale.chinese: '您已复习了今天所有到期的卡片。稍后再来看看！',
+    AppLocale.korean: '오늘의 복습 카드를 모두 완료했습니다. 나중에 다시 확인하세요!',
+    AppLocale.french: 'Vous avez revu toutes les cartes du jour. Revenez plus tard !',
+    AppLocale.german: 'Sie haben alle fälligen Karten für heute überprüft. Schauen Sie später wieder vorbei!',
+    AppLocale.italian: 'Hai rivisto tutte le schede in scadenza per oggi. Torna più tardi!',
+  });
+
+  String get dueCards => _t({
+    AppLocale.japanese: '復習カード',
+    AppLocale.english: 'Due Cards',
+    AppLocale.spanish: 'Tarjetas pendientes',
+    AppLocale.chinese: '待复习',
+    AppLocale.korean: '복습 카드',
+    AppLocale.french: 'Cartes à réviser',
+    AppLocale.german: 'Fällige Karten',
+    AppLocale.italian: 'Schede da rivedere',
+  });
+
+  String get showAllCards => _t({
+    AppLocale.japanese: 'すべてのカード',
+    AppLocale.english: 'All Cards',
+    AppLocale.spanish: 'Todas las tarjetas',
+    AppLocale.chinese: '所有卡片',
+    AppLocale.korean: '모든 카드',
+    AppLocale.french: 'Toutes les cartes',
+    AppLocale.german: 'Alle Karten',
+    AppLocale.italian: 'Tutte le schede',
+  });
+
+  String get howWasIt => _t({
+    AppLocale.japanese: '覚えていましたか？',
+    AppLocale.english: 'How did you do?',
+    AppLocale.spanish: '¿Cómo te fue?',
+    AppLocale.chinese: '你记住了吗？',
+    AppLocale.korean: '얼마나 잘 기억했나요?',
+    AppLocale.french: 'Comment ça s\'est passé ?',
+    AppLocale.german: 'Wie war es?',
+    AppLocale.italian: 'Come è andata?',
+  });
+
+  String nextReviewIn(int days) => _t({
+    AppLocale.japanese: days == 1 ? '次回: 明日' : '次回: $days日後',
+    AppLocale.english: days == 1 ? 'Next review: Tomorrow' : 'Next review: in $days days',
+    AppLocale.spanish: days == 1 ? 'Próxima revisión: mañana' : 'Próxima revisión: en $days días',
+    AppLocale.chinese: days == 1 ? '下次复习：明天' : '下次复习：$days天后',
+    AppLocale.korean: days == 1 ? '다음 복습: 내일' : '다음 복습: $days일 후',
+    AppLocale.french: days == 1 ? 'Prochaine révision : demain' : 'Prochaine révision : dans $days jours',
+    AppLocale.german: days == 1 ? 'Nächste Wiederholung: morgen' : 'Nächste Wiederholung: in $days Tagen',
+    AppLocale.italian: days == 1 ? 'Prossima revisione: domani' : 'Prossima revisione: tra $days giorni',
+  });
+
+  String dueCardsCount(int count) => _t({
+    AppLocale.japanese: '$count枚',
+    AppLocale.english: '$count due',
+    AppLocale.spanish: '$count pendientes',
+    AppLocale.chinese: '$count个待复习',
+    AppLocale.korean: '$count개 복습',
+    AppLocale.french: '$count à réviser',
+    AppLocale.german: '$count fällig',
+    AppLocale.italian: '$count da rivedere',
+  });
+
+  // --- Subscription Status strings ---
+
+  String get subscriptionActive => _t({
+    AppLocale.japanese: 'プレミアム有効',
+    AppLocale.english: 'Premium Active',
+    AppLocale.spanish: 'Premium activo',
+    AppLocale.chinese: '高级版有效',
+    AppLocale.korean: '프리미엄 활성',
+    AppLocale.french: 'Premium actif',
+    AppLocale.german: 'Premium aktiv',
+    AppLocale.italian: 'Premium attivo',
+  });
+
+  String get subscriptionCanceling => _t({
+    AppLocale.japanese: 'キャンセル予定',
+    AppLocale.english: 'Canceling',
+    AppLocale.spanish: 'Cancelando',
+    AppLocale.chinese: '即将取消',
+    AppLocale.korean: '취소 예정',
+    AppLocale.french: 'En cours d\'annulation',
+    AppLocale.german: 'Wird gekündigt',
+    AppLocale.italian: 'In cancellazione',
+  });
+
+  String get subscriptionBillingIssue => _t({
+    AppLocale.japanese: '支払いに問題があります',
+    AppLocale.english: 'Billing Issue',
+    AppLocale.spanish: 'Problema de facturación',
+    AppLocale.chinese: '计费问题',
+    AppLocale.korean: '결제 문제',
+    AppLocale.french: 'Problème de facturation',
+    AppLocale.german: 'Abrechnungsproblem',
+    AppLocale.italian: 'Problema di fatturazione',
+  });
+
+  String get subscriptionGracePeriod => _t({
+    AppLocale.japanese: 'グレース期間中',
+    AppLocale.english: 'Grace Period',
+    AppLocale.spanish: 'Período de gracia',
+    AppLocale.chinese: '宽限期',
+    AppLocale.korean: '유예 기간',
+    AppLocale.french: 'Période de grâce',
+    AppLocale.german: 'Nachfrist',
+    AppLocale.italian: 'Periodo di grazia',
+  });
+
+  String get subscriptionExpired => _t({
+    AppLocale.japanese: '期限切れ',
+    AppLocale.english: 'Expired',
+    AppLocale.spanish: 'Caducado',
+    AppLocale.chinese: '已过期',
+    AppLocale.korean: '만료됨',
+    AppLocale.french: 'Expiré',
+    AppLocale.german: 'Abgelaufen',
+    AppLocale.italian: 'Scaduto',
+  });
+
+  String subscriptionRenewsOn(String date) => _t({
+    AppLocale.japanese: '次回更新日: $date',
+    AppLocale.english: 'Renews on $date',
+    AppLocale.spanish: 'Se renueva el $date',
+    AppLocale.chinese: '续订日期：$date',
+    AppLocale.korean: '갱신일: $date',
+    AppLocale.french: 'Renouvellement le $date',
+    AppLocale.german: 'Verlängerung am $date',
+    AppLocale.italian: 'Rinnovo il $date',
+  });
+
+  String subscriptionAccessUntil(String date) => _t({
+    AppLocale.japanese: 'アクセス期限: $date',
+    AppLocale.english: 'Access until $date',
+    AppLocale.spanish: 'Acceso hasta $date',
+    AppLocale.chinese: '访问有效期至：$date',
+    AppLocale.korean: '$date까지 이용 가능',
+    AppLocale.french: 'Accès jusqu\'au $date',
+    AppLocale.german: 'Zugang bis $date',
+    AppLocale.italian: 'Accesso fino al $date',
+  });
+
+  String get updatePaymentMethod => _t({
+    AppLocale.japanese: '支払い方法を更新',
+    AppLocale.english: 'Update Payment Method',
+    AppLocale.spanish: 'Actualizar método de pago',
+    AppLocale.chinese: '更新支付方式',
+    AppLocale.korean: '결제 수단 업데이트',
+    AppLocale.french: 'Mettre à jour le mode de paiement',
+    AppLocale.german: 'Zahlungsmethode aktualisieren',
+    AppLocale.italian: 'Aggiorna metodo di pagamento',
+  });
+
+  String get manageSubscription => _t({
+    AppLocale.japanese: 'サブスクリプションを管理',
+    AppLocale.english: 'Manage Subscription',
+    AppLocale.spanish: 'Gestionar suscripción',
+    AppLocale.chinese: '管理订阅',
+    AppLocale.korean: '구독 관리',
+    AppLocale.french: 'Gérer l\'abonnement',
+    AppLocale.german: 'Abonnement verwalten',
+    AppLocale.italian: 'Gestisci abbonamento',
+  });
 }
 
 /// Provider for localized strings

@@ -34,17 +34,18 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
 
   Future<void> _requestCameraPermission() async {
     final status = await Permission.camera.request();
+    final s = ref.read(stringsProvider);
     
     if (status.isGranted) {
       _initializeCamera();
     } else if (status.isDenied) {
       setState(() {
-        _errorMessage = 'Camera permission is required to scan your diary.';
+        _errorMessage = s.cameraPermissionRequired;
         _permissionDenied = true;
       });
     } else if (status.isPermanentlyDenied) {
       setState(() {
-        _errorMessage = 'Camera permission is permanently denied.\nPlease enable it in Settings.';
+        _errorMessage = s.cameraPermissionPermanentlyDenied;
         _permissionDenied = true;
       });
     }
@@ -55,8 +56,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       _cameras = await availableCameras();
       
       if (_cameras == null || _cameras!.isEmpty) {
+        final s = ref.read(stringsProvider);
         setState(() {
-          _errorMessage = 'No camera found on this device';
+          _errorMessage = s.noCameraFound;
         });
         return;
       }
@@ -78,12 +80,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
         });
       }
     } on CameraException catch (e) {
+      final s = ref.read(stringsProvider);
       setState(() {
         if (e.code == 'CameraAccessDenied') {
-          _errorMessage = 'Camera permission denied.\nPlease enable camera access in Settings.';
+          _errorMessage = s.cameraPermissionPermanentlyDenied;
           _permissionDenied = true;
         } else {
-          _errorMessage = 'Camera error: ${e.description}';
+          _errorMessage = s.cameraError(e.description ?? '');
         }
       });
     } catch (e) {

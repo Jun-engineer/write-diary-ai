@@ -10,6 +10,8 @@ import 'core/config/amplifyconfiguration.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/providers/locale_provider.dart';
 import 'core/services/ad_service.dart';
+import 'core/services/subscription_service.dart';
+import 'features/auth/data/auth_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,14 +50,42 @@ Future<void> _configureAmplify() async {
   }
 }
 
-class WriteDiaryAiApp extends ConsumerWidget {
+class WriteDiaryAiApp extends ConsumerStatefulWidget {
   const WriteDiaryAiApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WriteDiaryAiApp> createState() => _WriteDiaryAiAppState();
+}
+
+class _WriteDiaryAiAppState extends ConsumerState<WriteDiaryAiApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize subscription service once at app start
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(subscriptionServiceProvider).initialize();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
     final appLocale = ref.watch(localeProvider);
+
+    // Wire RevenueCat identity to Cognito auth state
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      final subscriptionService = ref.read(subscriptionServiceProvider);
+      if (next.status == AuthStatus.authenticated && next.user != null) {
+        if (previous?.status != AuthStatus.authenticated) {
+          subscriptionService.loginUser(next.user!.userId);
+        }
+      } else if (next.status == AuthStatus.unauthenticated) {
+        if (previous?.status == AuthStatus.authenticated) {
+          subscriptionService.logoutUser();
+        }
+      }
+    });
     
     return MaterialApp.router(
       title: 'Write Diary AI',

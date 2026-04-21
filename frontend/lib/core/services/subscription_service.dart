@@ -5,8 +5,8 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'api_service.dart';
 import '../providers/user_provider.dart';
 
-/// RevenueCat API key — replace with your actual key from RevenueCat dashboard
-const String kRevenueCatApiKey = 'YOUR_REVENUECAT_API_KEY';
+/// RevenueCat Public SDK key from RevenueCat dashboard
+const String kRevenueCatApiKey = 'appl_QLwIcMmuVNJheKaCPFthzifPloS';
 
 /// Product IDs
 const String kPremiumMonthlyId = 'com.writediaryai.premium.monthly';
@@ -37,6 +37,36 @@ final subscriptionStatusProvider = StateProvider<SubscriptionStatus>((ref) {
 /// Provider for available packages (monthly/yearly)
 final availablePackagesProvider = StateProvider<List<Package>>((ref) {
   return [];
+});
+
+/// Detailed subscription info from RevenueCat CustomerInfo
+class SubscriptionDetail {
+  final bool isActive;
+  final bool willRenew;
+  final DateTime? expiresAt;
+  final bool hasBillingIssue;
+  final String? productId;
+
+  const SubscriptionDetail({
+    required this.isActive,
+    required this.willRenew,
+    this.expiresAt,
+    required this.hasBillingIssue,
+    this.productId,
+  });
+
+  bool get isCanceled => isActive && !willRenew && !hasBillingIssue;
+
+  static const SubscriptionDetail empty = SubscriptionDetail(
+    isActive: false,
+    willRenew: false,
+    hasBillingIssue: false,
+  );
+}
+
+/// Provider for detailed subscription info
+final subscriptionDetailProvider = StateProvider<SubscriptionDetail>((ref) {
+  return SubscriptionDetail.empty;
 });
 
 /// Service to manage subscriptions via RevenueCat
@@ -148,11 +178,23 @@ class SubscriptionService {
     try {
       final customerInfo = await Purchases.getCustomerInfo();
 
-      final isPremium = customerInfo
-          .entitlements.all[kPremiumEntitlementId]?.isActive ?? false;
+      final entitlement = customerInfo.entitlements.all[kPremiumEntitlementId];
+      final isPremium = entitlement?.isActive ?? false;
 
       _ref.read(subscriptionStatusProvider.notifier).state =
           isPremium ? SubscriptionStatus.subscribed : SubscriptionStatus.notSubscribed;
+
+      // Update detailed subscription info
+      final expirationDate = entitlement?.expirationDate != null
+          ? DateTime.tryParse(entitlement!.expirationDate!)
+          : null;
+      _ref.read(subscriptionDetailProvider.notifier).state = SubscriptionDetail(
+        isActive: isPremium,
+        willRenew: entitlement?.willRenew ?? false,
+        expiresAt: expirationDate,
+        hasBillingIssue: entitlement?.billingIssueDetectedAt != null,
+        productId: entitlement?.productIdentifier,
+      );
 
       await _syncPlanWithBackend(isPremium);
     } catch (e) {

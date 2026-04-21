@@ -218,4 +218,19 @@ class ApiService {
     });
     return response.data;
   }
+
+  // ==================== Review Card SRS APIs ====================
+
+  /// Submit a spaced-repetition rating for a review card
+  /// [rating] must be one of: 'again', 'hard', 'good', 'easy'
+  Future<Map<String, dynamic>> reviewCard({
+    required String cardId,
+    required String rating,
+  }) async {
+    final response = await _dio.put(
+      '/review-cards/$cardId/review',
+      data: {'rating': rating},
+    );
+    return response.data;
+  }
 }
