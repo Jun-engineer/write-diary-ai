@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Write Diary AI — iOS Build & Upload Script
 # Usage: ./build-ipa.sh [--upload]
@@ -108,10 +108,12 @@ if [ -z "$PROFILE_UUID" ]; then
   # Fallback to grep if plutil/cms path not available
   PROFILE_UUID=$(grep -aA1 UUID "$PROFILE_PATH" | grep -o '[-A-Fa-f0-9]\{36\}' | head -1)
 fi
+PROFILE_NAME=$(security cms -D -i "$PROFILE_PATH" 2>/dev/null | plutil -extract Name raw - || true)
 mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
 cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
 
 echo "  Profile: $(basename "$PROFILE_PATH")"
+echo "  Name   : $PROFILE_NAME"
 echo "  UUID   : $PROFILE_UUID"
 
 # ---------------------------------------------------------------------------
@@ -131,16 +133,31 @@ echo ""
 echo "[3/5] Archiving (xcodebuild)..."
 rm -rf "$ARCHIVE_PATH"
 cd "$IOS_DIR"
+ARCHIVE_LOG="$EXPORT_DIR/xcodebuild-archive.log"
+set +e
 xcodebuild clean archive \
   -workspace Runner.xcworkspace \
   -scheme "$SCHEME" \
   -configuration Release \
   -archivePath "$ARCHIVE_PATH" \
   -destination "generic/platform=iOS" \
-  CODE_SIGN_STYLE=Automatic \
+  CODE_SIGN_STYLE=Manual \
   DEVELOPMENT_TEAM="$TEAM_ID" \
+  PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+  CODE_SIGN_IDENTITY="Apple Distribution" \
   -allowProvisioningUpdates \
-  | tail -5
+  2>&1 | tee "$ARCHIVE_LOG" | tail -20
+ARCHIVE_EXIT=${PIPESTATUS[0]}
+set -e
+
+if [ "$ARCHIVE_EXIT" -ne 0 ] || [ ! -d "$ARCHIVE_PATH" ]; then
+  echo ""
+  echo "ERROR: Archive step failed (exit $ARCHIVE_EXIT). Last 40 log lines:"
+  tail -40 "$ARCHIVE_LOG" || true
+  echo ""
+  echo "Full log: $ARCHIVE_LOG"
+  exit 1
+fi
 
 echo "  Archive: $ARCHIVE_PATH"
 
@@ -160,7 +177,14 @@ cat > "$EXPORT_OPTIONS" <<EOF
 	<key>teamID</key>
 	<string>${TEAM_ID}</string>
 	<key>signingStyle</key>
-	<string>automatic</string>
+	<string>manual</string>
+	<key>signingCertificate</key>
+	<string>Apple Distribution</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>${BUNDLE_ID}</key>
+		<string>${PROFILE_NAME}</string>
+	</dict>
 	<key>uploadBitcode</key>
 	<false/>
 	<key>uploadSymbols</key>
@@ -181,7 +205,7 @@ xcodebuild -exportArchive \
   -exportPath "$EXPORT_DIR" \
   -exportOptionsPlist "$EXPORT_OPTIONS" \
   -allowProvisioningUpdates \
-  | tail -5
+  2>&1 | tee "$EXPORT_DIR/xcodebuild-export.log" | tail -20
 
 # xcodebuild names the ipa after the scheme (Runner.ipa). Rename for clarity.
 if [ -f "$EXPORT_DIR/Runner.ipa" ]; then
