@@ -94,7 +94,7 @@ class SubscriptionService {
 
       _initialized = true;
     } catch (e) {
-      debugPrint('RevenueCat initialization error: $e');
+      if (kDebugMode) debugPrint('RevenueCat initialization error: $e');
       _ref.read(subscriptionStatusProvider.notifier).state =
           SubscriptionStatus.error;
     }
@@ -111,7 +111,7 @@ class SubscriptionService {
             current.availablePackages;
       }
     } catch (e) {
-      debugPrint('Error loading offerings: $e');
+      if (kDebugMode) debugPrint('Error loading offerings: $e');
     }
   }
 
@@ -143,13 +143,13 @@ class SubscriptionService {
         _ref.read(subscriptionStatusProvider.notifier).state =
             SubscriptionStatus.notSubscribed;
       } else {
-        debugPrint('Purchase error: $e');
+        if (kDebugMode) debugPrint('Purchase error: $e');
         _ref.read(subscriptionStatusProvider.notifier).state =
             SubscriptionStatus.error;
       }
       return false;
     } catch (e) {
-      debugPrint('Purchase error: $e');
+      if (kDebugMode) debugPrint('Purchase error: $e');
       _ref.read(subscriptionStatusProvider.notifier).state =
           SubscriptionStatus.error;
       return false;
@@ -169,7 +169,7 @@ class SubscriptionService {
 
       await _syncPlanWithBackend(isPremium);
     } catch (e) {
-      debugPrint('Restore purchases error: $e');
+      if (kDebugMode) debugPrint('Restore purchases error: $e');
     }
   }
 
@@ -198,7 +198,7 @@ class SubscriptionService {
 
       await _syncPlanWithBackend(isPremium);
     } catch (e) {
-      debugPrint('Error refreshing status: $e');
+      if (kDebugMode) debugPrint('Error refreshing status: $e');
     }
   }
 
@@ -209,7 +209,7 @@ class SubscriptionService {
       await apiService.syncSubscriptionStatus(isPremium: isPremium);
       _ref.invalidate(userProvider);
     } catch (e) {
-      debugPrint('Backend sync error: $e');
+      if (kDebugMode) debugPrint('Backend sync error: $e');
     }
   }
 
@@ -219,7 +219,7 @@ class SubscriptionService {
       await Purchases.logIn(userId);
       await refreshSubscriptionStatus();
     } catch (e) {
-      debugPrint('RevenueCat login error: $e');
+      if (kDebugMode) debugPrint('RevenueCat login error: $e');
     }
   }
 
@@ -228,7 +228,7 @@ class SubscriptionService {
     try {
       await Purchases.logOut();
     } catch (e) {
-      debugPrint('RevenueCat logout error: $e');
+      if (kDebugMode) debugPrint('RevenueCat logout error: $e');
     }
   }
 }

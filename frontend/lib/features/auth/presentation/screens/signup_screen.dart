@@ -42,6 +42,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final s = ref.watch(stringsProvider);
 
     // Listen for auth state changes
     ref.listen<AuthState>(authProvider, (previous, next) {
@@ -82,14 +83,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Create Account',
+                  s.createAccount,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Start your English learning journey',
+                  s.startLearningJourney,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.grey[600],
                   ),
@@ -102,20 +103,20 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   controller: _displayNameController,
                   textInputAction: TextInputAction.next,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Display Name',
-                    prefixIcon: Icon(Icons.person_outlined),
-                    hintText: 'How should we call you?',
+                  decoration: InputDecoration(
+                    labelText: s.displayName,
+                    prefixIcon: const Icon(Icons.person_outlined),
+                    hintText: s.displayNameHint,
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a display name';
+                      return s.displayNameRequired;
                     }
                     if (value.trim().length < 2) {
-                      return 'Display name must be at least 2 characters';
+                      return s.displayNameTooShort;
                     }
                     if (value.trim().length > 50) {
-                      return 'Display name must be less than 50 characters';
+                      return s.displayNameTooLong;
                     }
                     return null;
                   },
@@ -128,16 +129,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email_outlined),
+                  decoration: InputDecoration(
+                    labelText: s.email,
+                    prefixIcon: const Icon(Icons.email_outlined),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
+                      return s.emailRequired;
                     }
                     if (!value.contains('@')) {
-                      return 'Please enter a valid email';
+                      return s.emailInvalid;
                     }
                     return null;
                   },
@@ -151,7 +152,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   obscureText: _obscurePassword,
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
-                    labelText: 'Password',
+                    labelText: s.password,
                     prefixIcon: const Icon(Icons.lock_outlined),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -161,24 +162,24 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         setState(() => _obscurePassword = !_obscurePassword);
                       },
                     ),
-                    helperText: 'At least 8 characters with uppercase, lowercase, and number',
+                    helperText: s.passwordHelper,
                     helperMaxLines: 2,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter a password';
+                      return s.passwordRequired;
                     }
                     if (value.length < 8) {
-                      return 'Password must be at least 8 characters';
+                      return s.passwordTooShort;
                     }
                     if (!value.contains(RegExp(r'[A-Z]'))) {
-                      return 'Password must contain an uppercase letter';
+                      return s.passwordNeedsUppercase;
                     }
                     if (!value.contains(RegExp(r'[a-z]'))) {
-                      return 'Password must contain a lowercase letter';
+                      return s.passwordNeedsLowercase;
                     }
                     if (!value.contains(RegExp(r'[0-9]'))) {
-                      return 'Password must contain a number';
+                      return s.passwordNeedsNumber;
                     }
                     return null;
                   },
@@ -193,7 +194,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _handleSignup(),
                   decoration: InputDecoration(
-                    labelText: 'Confirm Password',
+                    labelText: s.confirmPassword,
                     prefixIcon: const Icon(Icons.lock_outlined),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -206,7 +207,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ),
                   validator: (value) {
                     if (value != _passwordController.text) {
-                      return 'Passwords do not match';
+                      return s.passwordsDoNotMatch;
                     }
                     return null;
                   },
@@ -236,7 +237,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 
                 // Terms of Service
                 Text(
-                  'By signing up, you agree to our Terms of Service and Privacy Policy',
+                  s.termsAgreement,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.grey[600],
                   ),
@@ -250,7 +251,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Already have an account? ',
+                      s.alreadyHaveAccount,
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                     TextButton(

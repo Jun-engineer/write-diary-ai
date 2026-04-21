@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -78,7 +79,7 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Error checking scan usage: $e');
+      if (kDebugMode) debugPrint('Error checking scan usage: $e');
       // If error checking, still allow to go to camera (backend will check again)
       if (mounted) context.go('/diaries/camera');
     }

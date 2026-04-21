@@ -113,16 +113,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email_outlined),
+                  decoration: InputDecoration(
+                    labelText: ref.read(stringsProvider).email,
+                    prefixIcon: const Icon(Icons.email_outlined),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
+                      return ref.read(stringsProvider).emailRequired;
                     }
                     if (!value.contains('@')) {
-                      return 'Please enter a valid email';
+                      return ref.read(stringsProvider).emailInvalid;
                     }
                     return null;
                   },
@@ -137,7 +137,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _handleLogin(),
                   decoration: InputDecoration(
-                    labelText: 'Password',
+                    labelText: ref.read(stringsProvider).password,
                     prefixIcon: const Icon(Icons.lock_outlined),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -150,7 +150,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
+                      return ref.read(stringsProvider).passwordRequired;
                     }
                     return null;
                   },
@@ -192,7 +192,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Don't have an account? ",
+                      ref.read(stringsProvider).dontHaveAccount,
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                     TextButton(

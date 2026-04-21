@@ -68,8 +68,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  
-  assets:
-    - assets/images/
-    - assets/icons/
-    - assets/animations/
+  # NOTE: Asset directories removed — no assets are shipped yet. Re-add under
+  # `assets:` when real images/icons/animations are placed in assets/.
+

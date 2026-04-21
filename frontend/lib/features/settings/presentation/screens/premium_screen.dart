@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../../core/services/subscription_service.dart';
@@ -26,7 +27,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
       final service = ref.read(subscriptionServiceProvider);
       await service.refreshSubscriptionStatus();
       // Paywall analytics: log view event
-      debugPrint('[Analytics] paywall_view: ${DateTime.now().toIso8601String()}');
+      if (kDebugMode) debugPrint('[Analytics] paywall_view: ${DateTime.now().toIso8601String()}');
       try {
         await Purchases.setAttributes({
           'last_paywall_view': DateTime.now().toIso8601String(),
@@ -54,7 +55,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     if (package == null) return;
 
     // Paywall analytics: log purchase start
-    debugPrint('[Analytics] paywall_purchase_start: ${package.identifier} at ${DateTime.now().toIso8601String()}');
+    if (kDebugMode) debugPrint('[Analytics] paywall_purchase_start: ${package.identifier} at ${DateTime.now().toIso8601String()}');
     try {
       await Purchases.setAttributes({
         'last_purchase_attempt': package.identifier,
@@ -67,9 +68,9 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     try {
       final service = ref.read(subscriptionServiceProvider);
       final success = await service.purchasePackage(package);
-      debugPrint('[Analytics] paywall_purchase_${success ? "success" : "cancelled"}: ${package.identifier}');
+      if (kDebugMode) debugPrint('[Analytics] paywall_purchase_${success ? "success" : "cancelled"}: ${package.identifier}');
     } catch (e) {
-      debugPrint('[Analytics] paywall_purchase_error: $e');
+      if (kDebugMode) debugPrint('[Analytics] paywall_purchase_error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
@@ -316,7 +317,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
             OutlinedButton.icon(
               onPressed: () {
                 // Open App Store subscription management
-                debugPrint('[Analytics] manage_subscription_tapped');
+                if (kDebugMode) debugPrint('[Analytics] manage_subscription_tapped');
               },
               icon: const Icon(Icons.open_in_new, size: 16),
               label: Text(s.updatePaymentMethod),

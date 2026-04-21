@@ -2200,6 +2200,294 @@ class AppStrings {
     AppLocale.italian: 'Codice di verifica',
   });
 
+  // --- Auth form strings ---
+
+  String get email => _t({
+    AppLocale.japanese: 'メールアドレス',
+    AppLocale.english: 'Email',
+    AppLocale.spanish: 'Correo electrónico',
+    AppLocale.chinese: '邮箱',
+    AppLocale.korean: '이메일',
+    AppLocale.french: 'E-mail',
+    AppLocale.german: 'E-Mail',
+    AppLocale.italian: 'Email',
+  });
+
+  String get password => _t({
+    AppLocale.japanese: 'パスワード',
+    AppLocale.english: 'Password',
+    AppLocale.spanish: 'Contraseña',
+    AppLocale.chinese: '密码',
+    AppLocale.korean: '비밀번호',
+    AppLocale.french: 'Mot de passe',
+    AppLocale.german: 'Passwort',
+    AppLocale.italian: 'Password',
+  });
+
+  String get confirmPassword => _t({
+    AppLocale.japanese: 'パスワードを確認',
+    AppLocale.english: 'Confirm Password',
+    AppLocale.spanish: 'Confirmar contraseña',
+    AppLocale.chinese: '确认密码',
+    AppLocale.korean: '비밀번호 확인',
+    AppLocale.french: 'Confirmer le mot de passe',
+    AppLocale.german: 'Passwort bestätigen',
+    AppLocale.italian: 'Conferma password',
+  });
+
+  String get emailRequired => _t({
+    AppLocale.japanese: 'メールアドレスを入力してください',
+    AppLocale.english: 'Please enter your email',
+    AppLocale.spanish: 'Por favor, introduce tu correo electrónico',
+    AppLocale.chinese: '请输入您的邮箱',
+    AppLocale.korean: '이메일을 입력해주세요',
+    AppLocale.french: 'Veuillez saisir votre e-mail',
+    AppLocale.german: 'Bitte geben Sie Ihre E-Mail ein',
+    AppLocale.italian: 'Inserisci la tua email',
+  });
+
+  String get emailInvalid => _t({
+    AppLocale.japanese: '有効なメールアドレスを入力してください',
+    AppLocale.english: 'Please enter a valid email',
+    AppLocale.spanish: 'Introduce un correo electrónico válido',
+    AppLocale.chinese: '请输入有效的邮箱',
+    AppLocale.korean: '유효한 이메일을 입력해주세요',
+    AppLocale.french: 'Veuillez saisir un e-mail valide',
+    AppLocale.german: 'Bitte geben Sie eine gültige E-Mail ein',
+    AppLocale.italian: 'Inserisci un indirizzo email valido',
+  });
+
+  String get passwordRequired => _t({
+    AppLocale.japanese: 'パスワードを入力してください',
+    AppLocale.english: 'Please enter a password',
+    AppLocale.spanish: 'Por favor, introduce una contraseña',
+    AppLocale.chinese: '请输入密码',
+    AppLocale.korean: '비밀번호를 입력해주세요',
+    AppLocale.french: 'Veuillez saisir un mot de passe',
+    AppLocale.german: 'Bitte geben Sie ein Passwort ein',
+    AppLocale.italian: 'Inserisci una password',
+  });
+
+  String get passwordTooShort => _t({
+    AppLocale.japanese: 'パスワードは8文字以上で入力してください',
+    AppLocale.english: 'Password must be at least 8 characters',
+    AppLocale.spanish: 'La contraseña debe tener al menos 8 caracteres',
+    AppLocale.chinese: '密码至少需要8个字符',
+    AppLocale.korean: '비밀번호는 8자 이상이어야 합니다',
+    AppLocale.french: 'Le mot de passe doit contenir au moins 8 caractères',
+    AppLocale.german: 'Das Passwort muss mindestens 8 Zeichen lang sein',
+    AppLocale.italian: 'La password deve contenere almeno 8 caratteri',
+  });
+
+  String get passwordNeedsUppercase => _t({
+    AppLocale.japanese: 'パスワードには大文字を含めてください',
+    AppLocale.english: 'Password must contain an uppercase letter',
+    AppLocale.spanish: 'La contraseña debe contener una letra mayúscula',
+    AppLocale.chinese: '密码必须包含大写字母',
+    AppLocale.korean: '비밀번호에 대문자를 포함해야 합니다',
+    AppLocale.french: 'Le mot de passe doit contenir une majuscule',
+    AppLocale.german: 'Das Passwort muss einen Großbuchstaben enthalten',
+    AppLocale.italian: 'La password deve contenere una lettera maiuscola',
+  });
+
+  String get passwordNeedsLowercase => _t({
+    AppLocale.japanese: 'パスワードには小文字を含めてください',
+    AppLocale.english: 'Password must contain a lowercase letter',
+    AppLocale.spanish: 'La contraseña debe contener una letra minúscula',
+    AppLocale.chinese: '密码必须包含小写字母',
+    AppLocale.korean: '비밀번호에 소문자를 포함해야 합니다',
+    AppLocale.french: 'Le mot de passe doit contenir une minuscule',
+    AppLocale.german: 'Das Passwort muss einen Kleinbuchstaben enthalten',
+    AppLocale.italian: 'La password deve contenere una lettera minuscola',
+  });
+
+  String get passwordNeedsNumber => _t({
+    AppLocale.japanese: 'パスワードには数字を含めてください',
+    AppLocale.english: 'Password must contain a number',
+    AppLocale.spanish: 'La contraseña debe contener un número',
+    AppLocale.chinese: '密码必须包含数字',
+    AppLocale.korean: '비밀번호에 숫자를 포함해야 합니다',
+    AppLocale.french: 'Le mot de passe doit contenir un chiffre',
+    AppLocale.german: 'Das Passwort muss eine Zahl enthalten',
+    AppLocale.italian: 'La password deve contenere un numero',
+  });
+
+  String get passwordHelper => _t({
+    AppLocale.japanese: '大文字・小文字・数字を含む8文字以上',
+    AppLocale.english: 'At least 8 characters with uppercase, lowercase, and number',
+    AppLocale.spanish: 'Al menos 8 caracteres con mayúscula, minúscula y número',
+    AppLocale.chinese: '至少8个字符，包含大小写字母和数字',
+    AppLocale.korean: '대문자, 소문자, 숫자를 포함한 8자 이상',
+    AppLocale.french: 'Au moins 8 caractères avec majuscule, minuscule et chiffre',
+    AppLocale.german: 'Mindestens 8 Zeichen mit Groß-, Kleinbuchstaben und Zahl',
+    AppLocale.italian: 'Almeno 8 caratteri con maiuscola, minuscola e numero',
+  });
+
+  String get displayNameRequired => _t({
+    AppLocale.japanese: '表示名を入力してください',
+    AppLocale.english: 'Please enter a display name',
+    AppLocale.spanish: 'Por favor, introduce un nombre visible',
+    AppLocale.chinese: '请输入显示名称',
+    AppLocale.korean: '표시 이름을 입력해주세요',
+    AppLocale.french: "Veuillez saisir un nom d'affichage",
+    AppLocale.german: 'Bitte geben Sie einen Anzeigenamen ein',
+    AppLocale.italian: 'Inserisci un nome visualizzato',
+  });
+
+  String get displayNameTooShort => _t({
+    AppLocale.japanese: '表示名は2文字以上で入力してください',
+    AppLocale.english: 'Display name must be at least 2 characters',
+    AppLocale.spanish: 'El nombre visible debe tener al menos 2 caracteres',
+    AppLocale.chinese: '显示名称至少需要2个字符',
+    AppLocale.korean: '표시 이름은 2자 이상이어야 합니다',
+    AppLocale.french: "Le nom d'affichage doit contenir au moins 2 caractères",
+    AppLocale.german: 'Anzeigename muss mindestens 2 Zeichen lang sein',
+    AppLocale.italian: 'Il nome visualizzato deve contenere almeno 2 caratteri',
+  });
+
+  String get displayNameTooLong => _t({
+    AppLocale.japanese: '表示名は50文字以内で入力してください',
+    AppLocale.english: 'Display name must be less than 50 characters',
+    AppLocale.spanish: 'El nombre visible debe tener menos de 50 caracteres',
+    AppLocale.chinese: '显示名称不能超过50个字符',
+    AppLocale.korean: '표시 이름은 50자 이내여야 합니다',
+    AppLocale.french: "Le nom d'affichage doit contenir moins de 50 caractères",
+    AppLocale.german: 'Anzeigename muss weniger als 50 Zeichen lang sein',
+    AppLocale.italian: 'Il nome visualizzato deve avere meno di 50 caratteri',
+  });
+
+  String get displayNameHint => _t({
+    AppLocale.japanese: 'あなたの呼び名は？',
+    AppLocale.english: 'How should we call you?',
+    AppLocale.spanish: '¿Cómo deberíamos llamarte?',
+    AppLocale.chinese: '我们应该如何称呼您？',
+    AppLocale.korean: '어떻게 불러드릴까요?',
+    AppLocale.french: 'Comment devrions-nous vous appeler ?',
+    AppLocale.german: 'Wie sollen wir Sie nennen?',
+    AppLocale.italian: 'Come dovremmo chiamarti?',
+  });
+
+  String get createAccount => _t({
+    AppLocale.japanese: 'アカウントを作成',
+    AppLocale.english: 'Create Account',
+    AppLocale.spanish: 'Crear cuenta',
+    AppLocale.chinese: '创建账户',
+    AppLocale.korean: '계정 만들기',
+    AppLocale.french: 'Créer un compte',
+    AppLocale.german: 'Konto erstellen',
+    AppLocale.italian: 'Crea account',
+  });
+
+  String get startLearningJourney => _t({
+    AppLocale.japanese: '学習の旅を始めましょう',
+    AppLocale.english: 'Start your learning journey',
+    AppLocale.spanish: 'Comienza tu viaje de aprendizaje',
+    AppLocale.chinese: '开启您的学习之旅',
+    AppLocale.korean: '학습 여정을 시작하세요',
+    AppLocale.french: 'Commencez votre parcours d\'apprentissage',
+    AppLocale.german: 'Beginnen Sie Ihre Lernreise',
+    AppLocale.italian: 'Inizia il tuo percorso di apprendimento',
+  });
+
+  String get termsAgreement => _t({
+    AppLocale.japanese: 'サインアップすることで、利用規約とプライバシーポリシーに同意したことになります',
+    AppLocale.english: 'By signing up, you agree to our Terms of Service and Privacy Policy',
+    AppLocale.spanish: 'Al registrarte, aceptas nuestros Términos de servicio y Política de privacidad',
+    AppLocale.chinese: '注册即表示您同意我们的服务条款和隐私政策',
+    AppLocale.korean: '가입하시면 서비스 약관 및 개인정보 처리방침에 동의하는 것으로 간주됩니다',
+    AppLocale.french: 'En vous inscrivant, vous acceptez nos conditions d\'utilisation et notre politique de confidentialité',
+    AppLocale.german: 'Mit der Anmeldung stimmen Sie unseren Nutzungsbedingungen und der Datenschutzerklärung zu',
+    AppLocale.italian: 'Registrandoti, accetti i nostri Termini di servizio e l\'Informativa sulla privacy',
+  });
+
+  String get alreadyHaveAccount => _t({
+    AppLocale.japanese: 'すでにアカウントをお持ちですか？ ',
+    AppLocale.english: 'Already have an account? ',
+    AppLocale.spanish: '¿Ya tienes una cuenta? ',
+    AppLocale.chinese: '已有账户？ ',
+    AppLocale.korean: '이미 계정이 있으신가요? ',
+    AppLocale.french: 'Vous avez déjà un compte ? ',
+    AppLocale.german: 'Sie haben bereits ein Konto? ',
+    AppLocale.italian: 'Hai già un account? ',
+  });
+
+  String get dontHaveAccount => _t({
+    AppLocale.japanese: 'アカウントをお持ちでないですか？ ',
+    AppLocale.english: "Don't have an account? ",
+    AppLocale.spanish: '¿No tienes una cuenta? ',
+    AppLocale.chinese: '还没有账户？ ',
+    AppLocale.korean: '계정이 없으신가요? ',
+    AppLocale.french: "Vous n'avez pas de compte ? ",
+    AppLocale.german: 'Sie haben noch kein Konto? ',
+    AppLocale.italian: 'Non hai un account? ',
+  });
+
+  String get checkYourEmail => _t({
+    AppLocale.japanese: 'メールをご確認ください',
+    AppLocale.english: 'Check your email',
+    AppLocale.spanish: 'Revisa tu correo electrónico',
+    AppLocale.chinese: '请查看您的邮箱',
+    AppLocale.korean: '이메일을 확인해주세요',
+    AppLocale.french: 'Vérifiez votre e-mail',
+    AppLocale.german: 'Überprüfen Sie Ihre E-Mail',
+    AppLocale.italian: 'Controlla la tua email',
+  });
+
+  String weSentCodeTo(String email) => _t({
+    AppLocale.japanese: '確認コードを次のアドレスに送信しました\n$email',
+    AppLocale.english: 'We sent a verification code to\n$email',
+    AppLocale.spanish: 'Enviamos un código de verificación a\n$email',
+    AppLocale.chinese: '我们已将验证码发送至\n$email',
+    AppLocale.korean: '다음 주소로 인증 코드를 보냈습니다\n$email',
+    AppLocale.french: 'Nous avons envoyé un code de vérification à\n$email',
+    AppLocale.german: 'Wir haben einen Bestätigungscode gesendet an\n$email',
+    AppLocale.italian: 'Abbiamo inviato un codice di verifica a\n$email',
+  });
+
+  String get verificationCodeRequired => _t({
+    AppLocale.japanese: '確認コードを入力してください',
+    AppLocale.english: 'Please enter the verification code',
+    AppLocale.spanish: 'Por favor, introduce el código de verificación',
+    AppLocale.chinese: '请输入验证码',
+    AppLocale.korean: '인증 코드를 입력해주세요',
+    AppLocale.french: 'Veuillez saisir le code de vérification',
+    AppLocale.german: 'Bitte geben Sie den Bestätigungscode ein',
+    AppLocale.italian: 'Inserisci il codice di verifica',
+  });
+
+  String get newPasswordRequired => _t({
+    AppLocale.japanese: '新しいパスワードを入力してください',
+    AppLocale.english: 'Please enter a new password',
+    AppLocale.spanish: 'Por favor, introduce una nueva contraseña',
+    AppLocale.chinese: '请输入新密码',
+    AppLocale.korean: '새 비밀번호를 입력해주세요',
+    AppLocale.french: 'Veuillez saisir un nouveau mot de passe',
+    AppLocale.german: 'Bitte geben Sie ein neues Passwort ein',
+    AppLocale.italian: 'Inserisci una nuova password',
+  });
+
+  String get confirmNewPasswordRequired => _t({
+    AppLocale.japanese: '新しいパスワードを確認してください',
+    AppLocale.english: 'Please confirm your new password',
+    AppLocale.spanish: 'Por favor, confirma tu nueva contraseña',
+    AppLocale.chinese: '请确认您的新密码',
+    AppLocale.korean: '새 비밀번호를 확인해주세요',
+    AppLocale.french: 'Veuillez confirmer votre nouveau mot de passe',
+    AppLocale.german: 'Bitte bestätigen Sie Ihr neues Passwort',
+    AppLocale.italian: 'Conferma la nuova password',
+  });
+
+  String get failedToLoadDiary => _t({
+    AppLocale.japanese: '日記の読み込みに失敗しました',
+    AppLocale.english: 'Failed to load diary',
+    AppLocale.spanish: 'Error al cargar el diario',
+    AppLocale.chinese: '加载日记失败',
+    AppLocale.korean: '일기를 불러오지 못했습니다',
+    AppLocale.french: 'Échec du chargement du journal',
+    AppLocale.german: 'Tagebuch konnte nicht geladen werden',
+    AppLocale.italian: 'Impossibile caricare il diario',
+  });
+
   // --- Notification / Dialog strings ---
 
   String get dailyCorrectionLimitReached => _t({

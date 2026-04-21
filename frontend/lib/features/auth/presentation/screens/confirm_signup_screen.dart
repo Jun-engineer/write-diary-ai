@@ -136,7 +136,7 @@ class _ConfirmSignUpScreenState extends ConsumerState<ConfirmSignUpScreen> {
                 const SizedBox(height: 24),
 
                 Text(
-                  'Check your email',
+                  ref.read(stringsProvider).checkYourEmail,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -144,7 +144,7 @@ class _ConfirmSignUpScreenState extends ConsumerState<ConfirmSignUpScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'We sent a verification code to\n$email',
+                  ref.read(stringsProvider).weSentCodeTo(email),
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.grey[600],
                   ),

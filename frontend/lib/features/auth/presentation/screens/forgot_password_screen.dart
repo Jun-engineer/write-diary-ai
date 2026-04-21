@@ -144,16 +144,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   enabled: !_codeSent,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email_outlined),
+                  decoration: InputDecoration(
+                    labelText: s.email,
+                    prefixIcon: const Icon(Icons.email_outlined),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
+                      return s.emailRequired;
                     }
                     if (!value.contains('@')) {
-                      return 'Please enter a valid email';
+                      return s.emailInvalid;
                     }
                     return null;
                   },
@@ -192,7 +192,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter the verification code';
+                        return s.verificationCodeRequired;
                       }
                       return null;
                     },
@@ -218,10 +218,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter a new password';
+                        return s.newPasswordRequired;
                       }
                       if (value.length < 8) {
-                        return 'Password must be at least 8 characters';
+                        return s.passwordTooShort;
                       }
                       return null;
                     },
@@ -247,7 +247,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please confirm your new password';
+                        return s.confirmNewPasswordRequired;
                       }
                       if (value != _newPasswordController.text) {
                         return ref.read(stringsProvider).passwordsDoNotMatch;

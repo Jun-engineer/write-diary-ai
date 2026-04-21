@@ -486,7 +486,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
             children: [
               Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
               const SizedBox(height: 16),
-              Text('Failed to load diary', style: Theme.of(context).textTheme.titleLarge),
+              Text(ref.read(stringsProvider).failedToLoadDiary, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               Text(error.toString(), style: TextStyle(color: Colors.grey[600])),
               const SizedBox(height: 16),
