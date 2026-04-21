@@ -212,9 +212,11 @@ xcodebuild -exportArchive \
   -allowProvisioningUpdates \
   2>&1 | tee "$EXPORT_DIR/xcodebuild-export.log" | tail -20
 
-# xcodebuild names the ipa after the scheme (Runner.ipa). Rename for clarity.
-if [ -f "$EXPORT_DIR/Runner.ipa" ]; then
-  mv "$EXPORT_DIR/Runner.ipa" "$EXPORT_DIR/$IPA_NAME"
+# xcodebuild names the ipa after the scheme or app display name
+# (Runner.ipa, "Write Diary AI.ipa", etc.). Rename the first one we find.
+PRODUCED_IPA=$(find "$EXPORT_DIR" -maxdepth 1 -name "*.ipa" -type f | head -n 1)
+if [ -n "$PRODUCED_IPA" ] && [ "$PRODUCED_IPA" != "$EXPORT_DIR/$IPA_NAME" ]; then
+  mv "$PRODUCED_IPA" "$EXPORT_DIR/$IPA_NAME"
 fi
 
 if [ ! -f "$EXPORT_DIR/$IPA_NAME" ]; then
