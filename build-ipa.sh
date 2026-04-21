@@ -233,10 +233,44 @@ if [ "$UPLOAD" = true ]; then
   echo ""
   echo "[5/5] Uploading to App Store Connect (TestFlight)..."
   cd "$IOS_DIR"
-  fastlane run upload_to_testflight \
-    ipa:"$EXPORT_DIR/$IPA_NAME" \
-    team_id:"$TEAM_ID" \
-    skip_waiting_for_build_processing:true
+
+  # `fastlane run <action>` does NOT auto-read APP_STORE_CONNECT_API_KEY_*
+  # env vars the way a Fastfile lane does. We write a JSON key file and pass
+  # it explicitly via api_key_path so altool gets proper JWT auth.
+  UPLOAD_ARGS=(ipa:"$EXPORT_DIR/$IPA_NAME"
+               team_id:"$TEAM_ID"
+               skip_waiting_for_build_processing:true)
+
+  if [ -n "${APP_STORE_CONNECT_API_KEY_KEY_ID:-}" ] \
+     && [ -n "${APP_STORE_CONNECT_API_KEY_ISSUER_ID:-}" ] \
+     && [ -n "${APP_STORE_CONNECT_API_KEY_KEY_FILEPATH:-}" ]; then
+    API_KEY_JSON="$EXPORT_DIR/appstore_api_key.json"
+    # key_content must be the p8 contents as a single string (with \n).
+    P8_ESCAPED=$(awk '{printf "%s\\n", $0}' "$APP_STORE_CONNECT_API_KEY_KEY_FILEPATH")
+    cat > "$API_KEY_JSON" <<EOF
+{
+  "key_id": "$APP_STORE_CONNECT_API_KEY_KEY_ID",
+  "issuer_id": "$APP_STORE_CONNECT_API_KEY_ISSUER_ID",
+  "key": "$P8_ESCAPED",
+  "in_house": false
+}
+EOF
+    chmod 600 "$API_KEY_JSON"
+    UPLOAD_ARGS+=(api_key_path:"$API_KEY_JSON")
+    echo "[auth] Using App Store Connect API key $APP_STORE_CONNECT_API_KEY_KEY_ID"
+  fi
+
+  fastlane run upload_to_testflight "${UPLOAD_ARGS[@]}" || UPLOAD_STATUS=$?
+  UPLOAD_STATUS=${UPLOAD_STATUS:-0}
+
+  # Remove the temporary key file — it contains the private key.
+  [ -n "${API_KEY_JSON:-}" ] && rm -f "$API_KEY_JSON"
+
+  if [ $UPLOAD_STATUS -ne 0 ]; then
+    echo "ERROR: upload_to_testflight exited with status $UPLOAD_STATUS"
+    exit $UPLOAD_STATUS
+  fi
+
   echo ""
   echo "================================================"
   echo "  Done. Build uploaded to App Store Connect."
