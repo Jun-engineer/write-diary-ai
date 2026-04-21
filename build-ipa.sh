@@ -2,8 +2,9 @@
 set -euo pipefail
 
 # Write Diary AI — iOS Build & Upload Script
-# Usage: ./build-ipa.sh [--upload]
-#   --upload   Upload the resulting IPA to TestFlight via fastlane
+# Usage: ./build-ipa.sh [--upload] [--upload-only]
+#   --upload       Build IPA and upload to TestFlight
+#   --upload-only  Skip the build; upload the existing IPA in $EXPORT_DIR
 # Requires: fastlane (brew install fastlane), Flutter, Xcode, Apple Distribution cert in Keychain
 #
 # Before first run: authenticate fastlane with App Store Connect credentials.
@@ -25,9 +26,14 @@ BUNDLE_ID="com.writediaryai.writeDiaryAi"
 SCHEME="Runner"
 
 UPLOAD=false
-if [ "${1:-}" = "--upload" ]; then
-  UPLOAD=true
-fi
+UPLOAD_ONLY=false
+for arg in "$@"; do
+  case "$arg" in
+    --upload)      UPLOAD=true ;;
+    --upload-only) UPLOAD=true; UPLOAD_ONLY=true ;;
+    *) echo "Unknown arg: $arg"; exit 2 ;;
+  esac
+done
 
 mkdir -p "$EXPORT_DIR"
 
@@ -78,6 +84,15 @@ fi
 # ---------------------------------------------------------------------------
 # Step 1: Ensure distribution certificate + App Store provisioning profile.
 # ---------------------------------------------------------------------------
+if [ "$UPLOAD_ONLY" = true ]; then
+  echo ""
+  echo "[skip] --upload-only: skipping cert/profile/build/archive/export."
+  if [ ! -f "$EXPORT_DIR/$IPA_NAME" ]; then
+    echo "ERROR: $EXPORT_DIR/$IPA_NAME does not exist. Run without --upload-only first."
+    exit 1
+  fi
+  echo "  Reusing: $EXPORT_DIR/$IPA_NAME"
+else
 echo ""
 echo "[1/5] Ensuring Apple Distribution certificate & App Store profile..."
 cd "$IOS_DIR"
@@ -225,6 +240,8 @@ if [ ! -f "$EXPORT_DIR/$IPA_NAME" ]; then
 fi
 
 echo "  IPA: $EXPORT_DIR/$IPA_NAME"
+
+fi  # end of: if [ "$UPLOAD_ONLY" = true ]; then ... else ...
 
 # ---------------------------------------------------------------------------
 # Step 5 (optional): Upload to TestFlight.
