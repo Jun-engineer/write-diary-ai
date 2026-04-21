@@ -126,6 +126,11 @@ flutter pub get
 # Build once without codesigning to make sure Pods/Flutter.xcframework are in place.
 flutter build ios --release --no-codesign | tail -5
 
+# Re-run `pod install` after flutter build to make sure Podfile post_install
+# hooks (which strip signing from pod targets) are applied to the Pods project.
+cd "$IOS_DIR"
+pod install --silent | tail -5 || pod install | tail -10
+
 # ---------------------------------------------------------------------------
 # Step 3: Archive via xcodebuild using the Flutter-generated workspace.
 # ---------------------------------------------------------------------------
