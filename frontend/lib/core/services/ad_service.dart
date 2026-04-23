@@ -9,19 +9,30 @@ import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 class AdConfig {
   // Use test ads in debug mode, real ads in release
   static bool get useTestAds => kDebugMode;
-  
+
   // iOS Ad Unit IDs
   static const String _iosInterstitialReal = 'ca-app-pub-5434162081070782/4213547836';
   static const String _iosRewardedReal = 'ca-app-pub-5434162081070782/5376448084';
+  // TODO: Replace with the real banner ad unit ID created in AdMob console.
+  // Until a real unit is created, release builds will fall back to Google's
+  // test banner so ads are at least visible. Do NOT ship this to production
+  // without replacing it — Google may flag an account that repeatedly serves
+  // test ads under a real app ID.
+  static const String _iosBannerReal = 'ca-app-pub-3940256099942544/2934735716';
   static const String _iosInterstitialTest = 'ca-app-pub-3940256099942544/4411468910';
   static const String _iosRewardedTest = 'ca-app-pub-3940256099942544/1712485313';
-  
+  static const String _iosBannerTest = 'ca-app-pub-3940256099942544/2934735716';
+
   static String get interstitialAdUnitId {
     return useTestAds ? _iosInterstitialTest : _iosInterstitialReal;
   }
-  
+
   static String get rewardedAdUnitId {
     return useTestAds ? _iosRewardedTest : _iosRewardedReal;
+  }
+
+  static String get bannerAdUnitId {
+    return useTestAds ? _iosBannerTest : _iosBannerReal;
   }
 }
 

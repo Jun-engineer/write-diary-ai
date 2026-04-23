@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers/locale_provider.dart';
+import 'banner_ad_widget.dart';
 
 class MainScaffold extends ConsumerWidget {
   final Widget child;
@@ -14,24 +15,30 @@ class MainScaffold extends ConsumerWidget {
     
     return Scaffold(
       body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _calculateSelectedIndex(context),
-        onTap: (index) => _onItemTapped(index, context),
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.book_outlined),
-            activeIcon: const Icon(Icons.book),
-            label: s.diary,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.style_outlined),
-            activeIcon: const Icon(Icons.style),
-            label: s.review,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.settings_outlined),
-            activeIcon: const Icon(Icons.settings),
-            label: s.settings,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const BannerAdWidget(),
+          BottomNavigationBar(
+            currentIndex: _calculateSelectedIndex(context),
+            onTap: (index) => _onItemTapped(index, context),
+            items: [
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.book_outlined),
+                activeIcon: const Icon(Icons.book),
+                label: s.diary,
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.style_outlined),
+                activeIcon: const Icon(Icons.style),
+                label: s.review,
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.settings_outlined),
+                activeIcon: const Icon(Icons.settings),
+                label: s.settings,
+              ),
+            ],
           ),
         ],
       ),
