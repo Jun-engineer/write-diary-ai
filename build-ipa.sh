@@ -162,9 +162,15 @@ echo "  UUID   : $PROFILE_UUID"
 echo ""
 echo "[2/5] Preparing Flutter iOS build artifacts..."
 cd "$FRONTEND_DIR"
+# Purge any cached simulator-built native_assets (e.g. objective_c.framework
+# built with platform=IOSSIMULATOR). Apple rejects IPAs containing simulator
+# slices with validation error 409.
+flutter clean
 flutter pub get
-# Build once without codesigning to make sure Pods/Flutter.xcframework are in place.
-flutter build ios --release --no-codesign | tail -5
+# Build once without codesigning to make sure Pods/Flutter.xcframework are in
+# place. SDKROOT is forced to iphoneos so Dart native_assets hooks compile
+# for the device platform, not the simulator.
+SDKROOT=iphoneos flutter build ios --release --no-codesign | tail -5
 
 # Re-run `pod install` after flutter build to make sure Podfile post_install
 # hooks (which strip signing from pod targets) are applied to the Pods project.
@@ -186,6 +192,8 @@ xcodebuild clean archive \
   -configuration Release \
   -archivePath "$ARCHIVE_PATH" \
   -destination "generic/platform=iOS" \
+  -sdk iphoneos \
+  SDKROOT=iphoneos \
   CODE_SIGN_STYLE=Manual \
   DEVELOPMENT_TEAM="$TEAM_ID" \
   PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
