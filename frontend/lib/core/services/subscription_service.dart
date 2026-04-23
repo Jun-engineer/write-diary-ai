@@ -73,26 +73,35 @@ final subscriptionDetailProvider = StateProvider<SubscriptionDetail>((ref) {
 class SubscriptionService {
   final Ref _ref;
   bool _initialized = false;
+  Future<void>? _initFuture;
 
   SubscriptionService(this._ref);
 
-  /// Initialize RevenueCat SDK
-  Future<void> initialize() async {
-    if (_initialized) return;
+  /// Initialize RevenueCat SDK. Safe to call multiple times — the first
+  /// call kicks off configuration and all subsequent calls await the same
+  /// future, which is how `loginUser` / `logoutUser` avoid the race where
+  /// Cognito auth flips to authenticated before Purchases.configure()
+  /// has returned.
+  Future<void> initialize() {
+    if (_initialized) return Future.value();
+    _initFuture ??= _doInitialize();
+    return _initFuture!;
+  }
 
+  Future<void> _doInitialize() async {
     try {
       await Purchases.setLogLevel(kDebugMode ? LogLevel.debug : LogLevel.info);
 
       final configuration = PurchasesConfiguration(kRevenueCatApiKey);
       await Purchases.configure(configuration);
 
+      _initialized = true;
+
       // Check current subscription status
       await refreshSubscriptionStatus();
 
       // Load offerings
       await _loadOfferings();
-
-      _initialized = true;
     } catch (e) {
       if (kDebugMode) debugPrint('RevenueCat initialization error: $e');
       _ref.read(subscriptionStatusProvider.notifier).state =
@@ -216,6 +225,8 @@ class SubscriptionService {
   /// Identify user with RevenueCat (call after login)
   Future<void> loginUser(String userId) async {
     try {
+      await initialize();
+      if (!_initialized) return; // init failed — don't crash
       await Purchases.logIn(userId);
       await refreshSubscriptionStatus();
     } catch (e) {
@@ -226,6 +237,8 @@ class SubscriptionService {
   /// Logout from RevenueCat (call on sign out)
   Future<void> logoutUser() async {
     try {
+      await initialize();
+      if (!_initialized) return;
       await Purchases.logOut();
     } catch (e) {
       if (kDebugMode) debugPrint('RevenueCat logout error: $e');
