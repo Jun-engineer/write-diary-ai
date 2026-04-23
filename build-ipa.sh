@@ -97,19 +97,44 @@ echo ""
 echo "[1/5] Ensuring Apple Distribution certificate & App Store profile..."
 cd "$IOS_DIR"
 
+# `fastlane run <action>` does NOT auto-read APP_STORE_CONNECT_API_KEY_*
+# env vars. Write a JSON key file once and pass it via api_key_path: to
+# every fastlane action that needs App Store Connect auth.
+API_KEY_JSON=""
+API_KEY_ARG=()
+if [ -n "${APP_STORE_CONNECT_API_KEY_KEY_ID:-}" ] \
+   && [ -n "${APP_STORE_CONNECT_API_KEY_ISSUER_ID:-}" ] \
+   && [ -n "${APP_STORE_CONNECT_API_KEY_KEY_FILEPATH:-}" ]; then
+  API_KEY_JSON="$EXPORT_DIR/appstore_api_key.json"
+  P8_ESCAPED=$(awk '{printf "%s\\n", $0}' "$APP_STORE_CONNECT_API_KEY_KEY_FILEPATH")
+  cat > "$API_KEY_JSON" <<EOF
+{
+  "key_id": "$APP_STORE_CONNECT_API_KEY_KEY_ID",
+  "issuer_id": "$APP_STORE_CONNECT_API_KEY_ISSUER_ID",
+  "key": "$P8_ESCAPED",
+  "in_house": false
+}
+EOF
+  chmod 600 "$API_KEY_JSON"
+  API_KEY_ARG=(api_key_path:"$API_KEY_JSON")
+  trap '[ -n "${API_KEY_JSON:-}" ] && rm -f "$API_KEY_JSON"' EXIT
+fi
+
 # Fetch/create Apple Distribution certificate for this team.
 fastlane run get_certificates \
   development:false \
   team_id:"$TEAM_ID" \
   output_path:"$EXPORT_DIR/certs" \
-  generate_apple_certs:true
+  generate_apple_certs:true \
+  "${API_KEY_ARG[@]}"
 
 # Fetch/create the App Store provisioning profile for the bundle id.
 fastlane run get_provisioning_profile \
   app_identifier:"$BUNDLE_ID" \
   team_id:"$TEAM_ID" \
   output_path:"$EXPORT_DIR/profiles" \
-  filename:"WriteDiaryAI_AppStore.mobileprovision"
+  filename:"WriteDiaryAI_AppStore.mobileprovision" \
+  "${API_KEY_ARG[@]}"
 
 PROFILE_PATH=$(ls -t "$EXPORT_DIR/profiles/"*.mobileprovision 2>/dev/null | head -1)
 if [ -z "$PROFILE_PATH" ]; then
