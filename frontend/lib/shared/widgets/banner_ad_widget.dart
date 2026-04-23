@@ -30,7 +30,6 @@ class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
   }
 
   void _maybeLoad() {
-    if (kDebugMode) return;
     if (_bannerAd != null) return;
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) return;
@@ -62,9 +61,9 @@ class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Hide completely for premium users / debug / not-yet-loaded.
+    // Hide completely for premium users / not-yet-loaded.
     final isPremium = ref.watch(isPremiumProvider);
-    if (isPremium || kDebugMode || !_isLoaded || _bannerAd == null) {
+    if (isPremium || !_isLoaded || _bannerAd == null) {
       return const SizedBox.shrink();
     }
     return SizedBox(

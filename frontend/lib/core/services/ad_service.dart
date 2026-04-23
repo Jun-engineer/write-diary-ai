@@ -13,12 +13,7 @@ class AdConfig {
   // iOS Ad Unit IDs
   static const String _iosInterstitialReal = 'ca-app-pub-5434162081070782/4213547836';
   static const String _iosRewardedReal = 'ca-app-pub-5434162081070782/5376448084';
-  // TODO: Replace with the real banner ad unit ID created in AdMob console.
-  // Until a real unit is created, release builds will fall back to Google's
-  // test banner so ads are at least visible. Do NOT ship this to production
-  // without replacing it — Google may flag an account that repeatedly serves
-  // test ads under a real app ID.
-  static const String _iosBannerReal = 'ca-app-pub-3940256099942544/2934735716';
+  static const String _iosBannerReal = 'ca-app-pub-5434162081070782/6941513172';
   static const String _iosInterstitialTest = 'ca-app-pub-3940256099942544/4411468910';
   static const String _iosRewardedTest = 'ca-app-pub-3940256099942544/1712485313';
   static const String _iosBannerTest = 'ca-app-pub-3940256099942544/2934735716';
@@ -46,15 +41,14 @@ class AdService {
   bool _isInterstitialAdReady = false;
   bool _isRewardedAdReady = false;
   
-  /// Skip ads in debug mode to avoid simulator crashes
-  static bool get _skipAds => kDebugMode;
+  /// Previously all ads were disabled in debug to avoid simulator crashes.
+  /// Keeping the flag as `false` means debug/simulator now serves Google's
+  /// test units (see AdConfig.useTestAds) — real ad units are only used in
+  /// release builds, so there is no risk of invalid traffic.
+  static bool get _skipAds => false;
 
   /// Initialize the Mobile Ads SDK
   static Future<void> initialize() async {
-    if (_skipAds) {
-      if (kDebugMode) debugPrint('Skipping ad initialization in debug mode');
-      return;
-    }
     await MobileAds.instance.initialize();
   }
 

@@ -31,7 +31,7 @@
 	<key>NSUserTrackingUsageDescription</key>
 	<string>This identifier will be used to deliver personalized ads to you. You can choose not to allow tracking.</string>
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-5434162081070782~8931537954</string>
+	<string>ca-app-pub-5434162081070782~6390146850</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>
